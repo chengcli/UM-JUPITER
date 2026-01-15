@@ -8,6 +8,9 @@ https://learngitbranching.js.org/?locale=en_US
 ## clone this repo
 git clone <repo_url>
 
+## create a python virtual environment
+python -m venv pyenv
+
 ## install packages
 pip install paddle
 
