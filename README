@@ -3,3 +3,13 @@
 # How to use github tutorial
 https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging
 https://learngitbranching.js.org/?locale=en_US
+
+# Get Started
+## clone this repo
+git clone <repo_url>
+
+## install packages
+pip install paddle
+
+## run a test case
+python straka.py
