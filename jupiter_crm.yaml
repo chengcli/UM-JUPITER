@@ -101,10 +101,10 @@ boundary-condition:
   external:
     x1-inner: reflecting
     x1-outer: reflecting
-    x2-inner: reflecting
-    x2-outer: reflecting
-    x3-inner: reflecting
-    x3-outer: reflecting
+    x2-inner: periodic
+    x2-outer: periodic
+    x3-inner: periodic
+    x3-outer: periodic
 
 integration:
   type: rk3
@@ -116,13 +116,13 @@ integration:
 
 outputs:
   - type: restart
-    dt: 1.E5
+    dt: 10.E5
   - type: netcdf
     variables: [prim, uov]
-    dt: 1.E3
+    dt: 1.E4
   - type: netcdf
     variables: [thermo, path]
-    dt: 1.E3
+    dt: 1.E4
 
 forcing:
   const-gravity:
