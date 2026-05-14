@@ -129,7 +129,7 @@ def main():
     parser = argparse.ArgumentParser(description="Run hydrodynamic simulation.")
     parser.add_argument(
         "-c", "--config", type=str, required=True, 
-        default="jupiter_1d_crm.yaml",
+        default="jupiter_crm.yaml",
         help="Input YAML configuration file."
     )
     parser.add_argument(
