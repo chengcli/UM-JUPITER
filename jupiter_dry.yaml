@@ -1,12 +1,3 @@
-reference-state:
-  Tref: 0.
-  Pref: 1.e5
-
-species:
-  - name: dry
-    composition: {H: 1.5, He: 0.15}
-    cv_R: 2.5
-
 geometry:
   type: cartesian
 
@@ -33,24 +24,24 @@ distribute:
 
 dynamics:
   equation-of-state:
-    type: ideal-moist
+    type: ideal-gas
+    gammad: 1.4
+    weight: 2.2e-3
     density-floor:  1.e-10
     pressure-floor: 1.e-10
     tracer-floor: 1.e-10
-    limiter: true
-    max-iter: 10
-    ftol: 1.e-6
+    limiter: false
 
   vertical-projection:
     type: temperature
     pressure-margin: 1.e-6
 
   reconstruct:
-    vertical: {type: weno5, scale: true, shock: true}
-    horizontal: {type: weno5, scale: true, shock: true}
+    vertical: {type: weno5, scale: false, shock: false}
+    horizontal: {type: weno5, scale: false, shock: false}
 
   riemann-solver:
-    type: hllc
+    type: lmars
 
 boundary-condition:
   external:
@@ -63,30 +54,39 @@ boundary-condition:
 
 integration:
   type: rk3
-  cfl: 0.45
+  cfl: 0.9
   implicit-scheme: 1
   nlim: -1
-  tlim: 100.e5
-  ncycle_out: 1
+  tlim: 500.e5
+  ncycle_out: 50
+
+scalar:
+  nvar: 1
+  names: [tracer]
 
 outputs:
   - type: restart
-    dt: 10.E5
+    dt: 20.E5
   - type: netcdf
-    variables: [prim]
-    dt: 1.E4
+    variables: [prim, uov]
+    dt: 1.E5
   - type: netcdf
-    variables: [thermo]
-    dt: 1.E4
+    variables: [scalar_prim]
+    dt: 1.E5
 
 forcing:
   const-gravity:
     grav1: -22.
 
+  top-cool:
+    flux: -100.
+    depth: 5
+
+  bot-heat:
+    flux: 100
+    depth: 5
+
 problem:
   Ps: 100.e5
   Ts: 600.
   Tmin: 110.
-  xH2O: 3.e-3
-  xNH3: 3.2e-4
-  xH2S: 1.e-5
