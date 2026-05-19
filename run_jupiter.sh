@@ -6,8 +6,8 @@
 #DEVICE_ID=1 python -u run_jupiter_crm.py -c jupiter_crm3d_H2O-NH3_7.5.yaml --output-dir ./260518_crm3d_H2O-NH3_7.5 &> log.260518_crm3d_H2O-NH3_7.5 &
 
 # dart10
-DEVICE_ID=0 python -u run_jupiter_crm.py -c jupiter_crm2d_H2O-NH3_100.yaml --output-dir ./260518_crm2d_H2O-NH3_100 &> log.260518_crm2d_H2O-NH3_100 &
-DEVICE_ID=1 python -u run_jupiter_crm.py -c jupiter_crm3d_H2O-NH3_100.yaml --output-dir ./260518_crm3d_H2O-NH3_100 &> log.260518_crm3d_H2O-NH3_100 &
+#DEVICE_ID=0 python -u run_jupiter_crm.py -c jupiter_crm2d_H2O-NH3_100.yaml --output-dir ./260518_crm2d_H2O-NH3_100 &> log.260518_crm2d_H2O-NH3_100 &
+#DEVICE_ID=1 python -u run_jupiter_crm.py -c jupiter_crm3d_H2O-NH3_100.yaml --output-dir ./260518_crm3d_H2O-NH3_100 &> log.260518_crm3d_H2O-NH3_100 &
 
 # dart11
 #DEVICE_ID=0 python -u run_jupiter_crm.py -c jupiter_crm2d_H2O-NH3_1000.yaml --output-dir ./260518_crm2d_H2O-NH3_1000 &> log.260518_crm2d_H2O-NH3_1000 &
