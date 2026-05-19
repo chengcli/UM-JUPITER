@@ -6,3 +6,5 @@
 ./scripts/plot_pressure_level_contours.py output_260513 --field out1 --var theta --id 01000
 ./scripts/plot_pressure_level_contours.py output_260513 --field out1 --var vel1p --id 01000
 ./scripts/plot_pressure_level_contours.py output_260513 --field out1 --var vel1m --id 01000
+./scripts/plot_pressure_level_spectra.py output_260513 --field out1 --var ke --id 01000
+./scripts/plot_vertical_tendency_profiles.py output_260513_dry --field out1 --vars temp theta --last 20 --xlabel "Tendency [K/day]"
