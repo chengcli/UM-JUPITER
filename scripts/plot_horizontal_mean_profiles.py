@@ -19,13 +19,18 @@ matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 import xarray as xr
+import yaml
+from kintera import ThermoOptions, ThermoX
 
 
 DEFAULT_ROOT = Path("/home/chengcli/data00/2026.JUPITER_CRM")
 DEFAULT_OUTPUT_DIR = Path("diagnostics")
 DEFAULT_MAX_PRESSURE_BAR = 100.0
 PRESSURE_VARIABLE = "press"
+N2_VARIABLE = "N2"
+TEMPERATURE_VARIABLE = "temp"
 PRESSURE_REFERENCE_PA = 1.0e5
 DEFAULT_REFERENCE_ID = "00000"
 PRESSURE_MARKERS_BAR = (0.5, 1.0, 5.0, 10.0, 20.0, 50.0)
@@ -120,6 +125,12 @@ def parse_args() -> argparse.Namespace:
         default="variable value",
         help="Horizontal axis label. Default: 'variable value'",
     )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=Path("jupiter_crm.yaml"),
+        help="YAML config used for kintera thermodynamics and gravity. Default: jupiter_crm.yaml",
+    )
     return parser.parse_args()
 
 
@@ -192,6 +203,14 @@ def pressure_file_for(file_info: OutputFile) -> Path:
     )
 
 
+def thermo_file_for(file_info: OutputFile) -> Path:
+    if file_info.field == "out2":
+        return file_info.path
+    return file_info.path.with_name(
+        f"{file_info.prefix}.out2.{file_info.snapshot}.nc"
+    )
+
+
 def require_time_singleton(data_array: xr.DataArray, path: Path) -> xr.DataArray:
     if "time" not in data_array.dims:
         return data_array
@@ -216,7 +235,7 @@ def available_variables(path: Path) -> list[str]:
 
 def validate_variables(path: Path, variables: list[str]) -> None:
     with xr.open_dataset(path) as ds:
-        missing = [name for name in variables if name not in ds]
+        missing = [name for name in variables if name != N2_VARIABLE and name not in ds]
         if missing:
             available = ", ".join(sorted(ds.data_vars))
             raise ValueError(
@@ -236,15 +255,100 @@ def read_profile_samples(path: Path, variable: str) -> tuple[np.ndarray, np.ndar
     return x1, values
 
 
+def species_output_name(species: str) -> str:
+    return species.replace("(", "_").replace(",", "_").replace(")", "_")
+
+
+def read_gravity(config_path: Path) -> float:
+    with config_path.open("r", encoding="utf-8") as stream:
+        config = yaml.safe_load(stream)
+    return abs(float(config["forcing"]["const-gravity"]["grav1"]))
+
+
+def read_n2_samples(file_info: OutputFile, config_path: Path) -> tuple[np.ndarray, np.ndarray]:
+    pressure_path = pressure_file_for(file_info)
+    temp_path = thermo_file_for(file_info)
+    if not pressure_path.exists():
+        raise FileNotFoundError(f"Missing pressure/species file for N2: {pressure_path}")
+    if not temp_path.exists():
+        raise FileNotFoundError(f"Missing temperature file for N2: {temp_path}")
+
+    options = ThermoOptions.from_yaml(str(config_path))
+    thermo = ThermoX(options)
+    species = options.species()
+    gravity = read_gravity(config_path)
+
+    with xr.open_dataset(pressure_path) as ds1, xr.open_dataset(temp_path) as ds2:
+        pressure_da = require_time_singleton(ds1[PRESSURE_VARIABLE], pressure_path)
+        temp_da = require_time_singleton(ds2[TEMPERATURE_VARIABLE], temp_path)
+        require_profile_dims(pressure_da, pressure_path)
+        require_profile_dims(temp_da, temp_path)
+        x1 = ds1["x1"].values.astype(np.float64)
+        pressure = pressure_da.transpose("x1", "x3", "x2").values.astype(np.float64)
+        temp = temp_da.transpose("x1", "x3", "x2").values.astype(np.float64)
+
+        explicit_mass_fractions = []
+        for name in species:
+            if name == "dry":
+                continue
+            output_name = species_output_name(name)
+            if output_name in ds1:
+                data = require_time_singleton(ds1[output_name], pressure_path)
+                require_profile_dims(data, pressure_path)
+                values = data.transpose("x1", "x3", "x2").values.astype(np.float64)
+            else:
+                values = np.zeros_like(pressure)
+            explicit_mass_fractions.append(values)
+
+    if temp.shape != pressure.shape:
+        raise ValueError(f"Temperature shape {temp.shape} does not match pressure shape {pressure.shape}")
+
+    yfrac = np.zeros((*pressure.shape, len(species)), dtype=np.float64)
+    if explicit_mass_fractions:
+        explicit = np.stack(explicit_mass_fractions, axis=-1)
+        explicit = np.clip(explicit, 0.0, None)
+        yfrac[..., 1:] = explicit
+        yfrac[..., 0] = np.clip(1.0 - np.sum(explicit, axis=-1), 0.0, None)
+    else:
+        yfrac[..., 0] = 1.0
+
+    ysum = np.sum(yfrac, axis=-1, keepdims=True)
+    if np.any(ysum <= 0.0):
+        raise ValueError("Non-positive total mass fraction encountered while computing N2")
+    yfrac /= ysum
+
+    mu = thermo.get_buffer("mu").detach().cpu().numpy().astype(np.float64)
+    mole_density = yfrac / mu
+    xfrac = mole_density / np.sum(mole_density, axis=-1, keepdims=True)
+
+    flat_temp = torch.as_tensor(temp.reshape(-1), dtype=torch.float64)
+    flat_pressure = torch.as_tensor(pressure.reshape(-1), dtype=torch.float64)
+    flat_xfrac = torch.as_tensor(xfrac.reshape(-1, len(species)), dtype=torch.float64)
+    nreaction = int(thermo.get_buffer("stoich").shape[1])
+    zero_gain = torch.zeros((flat_xfrac.shape[0], nreaction, nreaction), dtype=torch.float64)
+
+    with torch.no_grad():
+        cp_mole = thermo.effective_cp(flat_temp, flat_pressure, flat_xfrac, zero_gain)
+    cp_mole_np = cp_mole.detach().cpu().numpy().reshape(pressure.shape)
+    mu_mix = np.sum(xfrac * mu, axis=-1)
+    cp_mass = cp_mole_np / mu_mix
+    n2 = gravity / cp_mass
+    return x1, n2
+
+
 def read_variable_stats(
     files: list[OutputFile],
     variable: str,
+    config_path: Path,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     x1_ref: np.ndarray | None = None
     samples = []
 
     for file_info in files:
-        x1, values = read_profile_samples(file_info.path, variable)
+        if variable == N2_VARIABLE:
+            x1, values = read_n2_samples(file_info, config_path)
+        else:
+            x1, values = read_profile_samples(file_info.path, variable)
         if x1_ref is None:
             x1_ref = x1
         elif not np.allclose(x1_ref, x1):
@@ -263,8 +367,12 @@ def read_variable_stats(
 def read_variable_reference(
     file_info: OutputFile,
     variable: str,
+    config_path: Path,
 ) -> tuple[np.ndarray, np.ndarray]:
-    x1, values = read_profile_samples(file_info.path, variable)
+    if variable == N2_VARIABLE:
+        x1, values = read_n2_samples(file_info, config_path)
+    else:
+        x1, values = read_profile_samples(file_info.path, variable)
     return x1, np.nanmean(values, axis=(1, 2))
 
 
@@ -468,14 +576,14 @@ def main() -> None:
         references = {}
 
     for variable in args.vars:
-        x1, mean, std = read_variable_stats(field_files, variable)
+        x1, mean, std = read_variable_stats(field_files, variable, args.config)
         if x1_ref is None:
             x1_ref = x1
         elif not np.allclose(x1_ref, x1):
             raise ValueError(f"x1 coordinate mismatch for {variable}")
         stats[variable] = (mean, std)
         if references is not None and reference_file is not None:
-            reference_x1, reference = read_variable_reference(reference_file, variable)
+            reference_x1, reference = read_variable_reference(reference_file, variable, args.config)
             if not np.allclose(x1_ref, reference_x1):
                 raise ValueError(f"x1 coordinate mismatch in reference for {variable}")
             references[variable] = reference

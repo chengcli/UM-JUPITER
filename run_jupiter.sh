@@ -13,12 +13,15 @@
 #DEVICE_ID=0 python -u run_jupiter_crm.py -c jupiter_crm2d_H2O-NH3_1000.yaml --output-dir ./260518_crm2d_H2O-NH3_1000 &> log.260518_crm2d_H2O-NH3_1000 &
 #DEVICE_ID=1 python -u run_jupiter_crm.py -c jupiter_crm3d_H2O-NH3_1000.yaml --output-dir ./260518_crm3d_H2O-NH3_1000 &> log.260518_crm3d_H2O-NH3_1000 &
 
-# H2O-NH3-H2S moist
-# dungeon
-#DEVICE_ID=0 python run_jupiter_crm.py -c jupiter_crm_7.5.yaml --output-dir ./output_260518_moist_7.5 > log.260518_moist_7.5 &
-#DEVICE_ID=1 python run_jupiter_crm.py -c jupiter_crm_1000.yaml --output-dir ./output_260518_moist_1000 > log.260518_moist_1000 &
+# H2O-NH3-H2S moist + dry
+# dungeon1
+DEVICE_ID=0 python -u run_jupiter_crm.py -c jupiter_crm_7.5.yaml --output-dir ./output_260520_crm_7.5 > log.260518_crm_7.5 &
+DEVICE_ID=1 python -u run_jupiter_dry.py -c jupiter_dry_7.5.yaml --output-dir ./output_260520_dry_7.5 > log.260518_dry_7.5 &
 
-# dry with tracer
-#DEVICE_ID=1 python run_jupiter_dry.py -c jupiter_dry.yaml --output-dir ./output_260513_dry > log.260513_dry &
-#DEVICE_ID=0 python run_jupiter_dry.py -c jupiter_dry_7.5.yaml --output-dir ./output_260513_dry_7.5 > log.260513_dry_7.4 &
-#DEVICE_ID=1 python run_jupiter_dry.py -c jupiter_dry_1000.yaml --output-dir ./output_260513_dry_1000 > log.260513_dry_1000 &
+# dungeon2
+#DEVICE_ID=0 python -u run_jupiter_crm.py -c jupiter_crm_100.yaml --output-dir ./output_260520_crm_100 &> log.260520_crm_100 &
+#DEVICE_ID=1 python -u run_jupiter_dry.py -c jupiter_dry_100.yaml --output-dir ./output_260520_dry_100 &> log.260520_dry_100 &
+
+# dungeon3
+#DEVICE_ID=0 python run_jupiter_crm.py -c jupiter_crm_1000.yaml --output-dir ./output_260520_crm_1000 > log.260513_crm_1000 &
+#DEVICE_ID=1 python run_jupiter_dry.py -c jupiter_dry_1000.yaml --output-dir ./output_260520_dry_1000 > log.260513_dry_1000 &
