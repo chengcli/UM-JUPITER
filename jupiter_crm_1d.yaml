@@ -54,32 +54,21 @@ species:
 
 geometry:
   type: cartesian
-
-  bounds:
-    x1min: 0.
-    x1max: 300.e3
-    x2min: 0.
-    x2max: 2400.e3
-    x3min: 0.
-    x3max: 2400.e3
-
-  cells:
-    nx1: 100
-    nx2: 100
-    nx3: 100
-    nghost: 3
+  bounds: {x1min: 0., x1max: 300.e3, x2min: 0., x2max: 1200.e3, x3min: 0., x3max: 1200.e3}
+  cells: {nx1: 200, nx2: 1, nx3: 1, nghost: 3}
 
 distribute:
-  backend: nccl
+  backend: gloo
   layout: slab
   nb2: 1
   nb3: 1
+  blocks_per_process: 1
   verbose: false
 
 dynamics:
   equation-of-state:
     type: ideal-moist
-    density-floor:  1.e-10
+    density-floor: 1.e-10
     pressure-floor: 1.e-10
     tracer-floor: 1.e-10
     limiter: true
@@ -108,21 +97,16 @@ boundary-condition:
 
 integration:
   type: rk3
-  cfl: 0.9
+  cfl: 0.45
   implicit-scheme: 1
-  nlim: -1
-  tlim: 100.e5
-  ncycle_out: 10
+  nlim: 1
+  tlim: 1.e4
+  ncycle_out: 1
 
 outputs:
-  - type: restart
-    dt: 10.E5
   - type: netcdf
-    variables: [prim, uov]
-    dt: 2.E4
-  - type: netcdf
-    variables: [thermo, path]
-    dt: 2.E4
+    variables: [prim, uov, thermo, path]
+    dt: 2.5e3
 
 forcing:
   const-gravity:
@@ -159,7 +143,7 @@ reactions:
 
   - equation: H2O(l) => H2O(l,p)
     type: coagulation
-    rate-constant: {A: 1.e-4, b: 0, Ea_R: 0.}
+    rate-constant: {A: 0.001, b: 0, Ea_R: 0.}
 
   - equation: H2O(l,p) => H2O
     type: evaporation
@@ -171,7 +155,7 @@ reactions:
 
   - equation: NH3(s) => NH3(s,p)
     type: coagulation
-    rate-constant: {A: 1.e-4, b: 0, Ea_R: 0.}
+    rate-constant: {A: 0.001, b: 0, Ea_R: 2.}
 
   - equation: NH3(s,p) => NH3
     type: evaporation
@@ -183,7 +167,7 @@ reactions:
 
   - equation: NH4SH(s) => NH4SH(s,p)
     type: coagulation
-    rate-constant: {A: 1.e-4, b: 0, Ea_R: 0.}
+    rate-constant: {A: 0.001, b: 0, Ea_R: 0.}
 
   - equation: NH4SH(s,p) => NH3 + H2S
     type: evaporation
