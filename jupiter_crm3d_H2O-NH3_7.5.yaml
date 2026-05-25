@@ -13,7 +13,7 @@ species:
     u0_R: 0.
 
   - name: NH3
-    composition: {H: 2, O: 1}
+    composition: {N: 1, H: 3}
     cv_R: 2.5
     u0_R: 0.
 

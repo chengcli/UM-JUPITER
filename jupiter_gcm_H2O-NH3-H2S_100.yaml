@@ -53,25 +53,26 @@ species:
     u0_R: -1.2e4
 
 geometry:
-  type: cartesian
+  type: gnomonic-equiangle
 
   bounds:
-    x1min: 0.
-    x1max: 300.e3
-    x2min: 0.
-    x2max: 2400.e3
-    x3min: 0.
-    x3max: 2400.e3
+    x1min: 69886.E3
+    x1max: 70186.e3
+    x2min_pi: -0.25
+    x2max_pi: 0.25
+    x3min_pi: -0.25
+    x3max_pi: 0.25
 
   cells:
     nx1: 100
-    nx2: 100
-    nx3: 100
+    nx2: 144
+    nx3: 144
     nghost: 3
 
 distribute:
   backend: nccl
-  layout: slab
+  layout: cubed-sphere
+  blocks_per_process: 3
   nb2: 1
   nb3: 1
   verbose: false
@@ -101,15 +102,15 @@ boundary-condition:
   external:
     x1-inner: reflecting
     x1-outer: reflecting
-    x2-inner: periodic
-    x2-outer: periodic
-    x3-inner: periodic
-    x3-outer: periodic
+    x2-inner: custom
+    x2-outer: custom
+    x3-inner: custom
+    x3-outer: custom
 
 integration:
   type: rk3
   cfl: 0.9
-  implicit-scheme: 1
+  implicit-scheme: 9
   nlim: -1
   tlim: 500.e5
   ncycle_out: 50
@@ -129,12 +130,16 @@ forcing:
     grav1: -22.
 
   top-cool:
-    flux: -1000.
+    flux: -100.
     depth: 5
 
   bot-heat:
-    flux: 1000.
+    flux: 100
     depth: 5
+
+  coriolis:
+    type: xyz
+    omega1: 1.7585e-4
 
 sedimentation:
   radius:
