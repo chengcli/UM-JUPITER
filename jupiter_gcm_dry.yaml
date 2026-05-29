@@ -18,7 +18,7 @@ geometry:
 distribute:
   backend: nccl
   layout: cubed-sphere
-  blocks_per_process: 2
+  blocks_per_process: 3
   nb2: 1
   nb3: 1
   verbose: false
