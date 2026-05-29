@@ -2,11 +2,14 @@ import argparse
 import torch
 import yaml
 
+
 from dataclasses import dataclass
 from snapy import Mesh, MeshOptions, kICY, kIV1
 from snapy import EquationOfState
 from kintera import ThermoX, ThermoY, KineticsOptions, Kinetics
 from paddle import (
+    start_dist,
+    close_dist,
     setup_profile,
     evolve_kinetics,
 )
@@ -40,18 +43,12 @@ def run_with(args: argparse.Namespace):
     with open(args.config, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
+    device = start_dist(config["distribute"].get("backend", "gloo"))
+
     options = MeshOptions.from_yaml(args.config)
     options.block().output_dir(args.output_dir)
 
     mesh = Mesh(options)
-
-    # use cuda if available
-    if torch.cuda.is_available() and options.block().layout().backend() == "nccl":
-        device = torch.device(options.device_str())
-    else:
-        device = torch.device("cpu")
-
-    print('device = ', device)
     mesh.to(device)
 
     thermo_configs: list[ThermoConfigs] = []
@@ -77,7 +74,6 @@ def run_with(args: argparse.Namespace):
             hydro_w = setup_profile(block, param, method="pseudo-adiabat")
             hydro_w[kIV1] += 0.1 * torch.rand_like(hydro_w[kIV1])
             block_vars.append({"hydro_w": hydro_w})
-            print('hydro_w device = ', hydro_w.device)
         block_vars, current_time = mesh.initialize(block_vars)
 
     for block in mesh.blocks:
@@ -124,7 +120,7 @@ def run_with(args: argparse.Namespace):
         mesh.make_outputs(block_vars, current_time)
 
     mesh.finalize(block_vars, current_time)
-
+    close_dist()
 
 def main():
     # parse arguments

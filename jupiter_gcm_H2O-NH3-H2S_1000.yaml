@@ -113,7 +113,7 @@ integration:
   implicit-scheme: 9
   nlim: -1
   tlim: 500.e5
-  ncycle_out: 1
+  ncycle_out: 20
 
 outputs:
   - type: restart
@@ -130,11 +130,11 @@ forcing:
     grav1: -22.
 
   top-cool:
-    flux: -100.
+    flux: -1000.
     depth: 5
 
   bot-heat:
-    flux: 100
+    flux: 1000
     depth: 5
 
   coriolis:
