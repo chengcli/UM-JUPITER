@@ -1,0 +1,97 @@
+geometry:
+  type: gnomonic-equiangle
+
+  bounds:
+    x1min: 69886.E3
+    x1max: 70186.e3
+    x2min_pi: -0.25
+    x2max_pi: 0.25
+    x3min_pi: -0.25
+    x3max_pi: 0.25
+
+  cells:
+    nx1: 100
+    nx2: 144
+    nx3: 144
+    nghost: 3
+
+distribute:
+  backend: nccl
+  layout: cubed-sphere
+  blocks_per_process: 2
+  nb2: 1
+  nb3: 1
+  verbose: false
+
+dynamics:
+  equation-of-state:
+    type: ideal-gas
+    gammad: 1.4
+    weight: 2.2e-3
+    density-floor:  1.e-10
+    pressure-floor: 1.e-10
+    tracer-floor: 1.e-10
+    limiter: false
+
+  vertical-projection:
+    type: temperature
+    pressure-margin: 1.e-6
+
+  reconstruct:
+    vertical: {type: weno5, scale: false, shock: false}
+    horizontal: {type: weno5, scale: false, shock: false}
+
+  riemann-solver:
+    type: lmars
+
+boundary-condition:
+  external:
+    x1-inner: reflecting
+    x1-outer: reflecting
+    x2-inner: custom
+    x2-outer: custom
+    x3-inner: custom
+    x3-outer: custom
+
+integration:
+  type: rk3
+  cfl: 0.45
+  implicit-scheme: 9
+  nlim: -1
+  tlim: 500.e5
+  ncycle_out: 50
+
+scalar:
+  nvar: 1
+  names: [tracer]
+
+outputs:
+  - type: restart
+    dt: 20.E5
+  - type: netcdf
+    variables: [prim, uov]
+    dt: 1.E5
+  - type: netcdf
+    variables: [scalar_prim]
+    dt: 1.E5
+
+forcing:
+  const-gravity:
+    grav1: -22.
+
+  top-cool:
+    flux: -1000.
+    depth: 5
+
+  bot-heat:
+    flux: 1000
+    depth: 5
+
+  coriolis:
+    type: xyz
+    omega1: 1.7585e-4
+
+problem:
+  Ps: 100.e5
+  Ts: 600.
+  Tmin: 110.
