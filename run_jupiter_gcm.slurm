@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH --job-name=sub-neptune
-#SBATCH --account=nrenno1
+#SBATCH --job-name=jupiter-gcm
+#SBATCH --account=atreya0
 #SBATCH --partition=spgpu
-#SBATCH --nodes=3
+#SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --gres=gpu:2
-#SBATCH --cpus-per-task=2
+#SBATCH --gres=gpu:3
+#SBATCH --cpus-per-task=3
 #SBATCH --mem=64G
 #SBATCH --time=00:30:00
 #SBATCH --output=%x-%j.out
@@ -14,15 +14,14 @@
 set -euo pipefail
 
 # ---- User settings ----
-SIF=${HOME}/chengcli/ubuntu22.04-cuda11.8-py3.10-canoe_2026-03-03.sif
-#SIF=${HOME}/chengcli/ubuntu22.04-cuda12.9-py3.10-canoe_2026-02-18.sif
 PORT=29500
+source ${HOME}/pyenv/bin/activate
 
 # ---- Derive rendezvous info from Slurm allocation ----
 export MASTER_ADDR="$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)"
 export MASTER_PORT="${PORT}"
 export NNODES="${SLURM_JOB_NUM_NODES}"
-export GPUS_PER_NODE=2
+export GPUS_PER_NODE=3
 export WORLD_SIZE=$((NNODES * GPUS_PER_NODE))
 
 echo "MASTER_ADDR=${MASTER_ADDR}"
@@ -38,22 +37,12 @@ echo "NODELIST=${SLURM_JOB_NODELIST}"
 # export GLOO_SOCKET_IFNAME=ib0
 
 # ---- Launch one torchrun per node; torchrun spawns 2 procs on that node ----
-srun --nodes=${NNODES} --ntasks=${NNODES} --ntasks-per-node=1 \
-  singularity exec --nv "${SIF}" bash -lc '
-    set -euo pipefail
-
-    echo "Running on $(hostname)  SLURM_PROCID=${SLURM_PROCID}"
-    export NODE_RANK=${SLURM_PROCID}
-
-    source /opt/venv/bin/activate
-
-    torchrun \
-      --nnodes='"${NNODES}"' \
-      --nproc_per_node='"${GPUS_PER_NODE}"' \
-      --node_rank=${NODE_RANK} \
-      --master_addr='"${MASTER_ADDR}"' \
-      --master_port='"${MASTER_PORT}"' \
-      ./run_sub_neptune_rt.py \
-        --config=./sub_neptune_rt.yaml \
-        --output-dir=./output
-  '
+srun torchrun \
+  --nnodes="${NNODES}" \
+  --nproc_per_node="${GPUS_PER_NODE}" \
+  --node_rank=${SLURM_PROCID} \
+  --master_addr="${MASTER_ADDR}" \
+  --master_port="${MASTER_PORT}" \
+  run_jupiter_moist.py \
+    --config jupiter_gcm_H2O-NH3-H2S_100.yaml \
+    --output-dir /home/chengcli/chengcli0/chengcli/2026.JupiterCRM/260525_gcm_H2O-NH3-H2S_100
