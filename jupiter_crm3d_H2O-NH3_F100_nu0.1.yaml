@@ -127,8 +127,8 @@ forcing:
 
   relax-bot-comp:
     tau: 1.e3
-    species: ["H2O", "NH3", "H2S"]
-    xfrac: [3.e-3, 3.2e-4, 1.e-5]
+    species: ["H2O", "NH3"]
+    xfrac: [3.e-3, 3.2e-4]
 
 sedimentation:
   radius:
