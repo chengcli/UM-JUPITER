@@ -56,8 +56,8 @@ geometry:
   type: gnomonic-equiangle
 
   bounds:
-    x1min: 69886.E2
-    x1max: 70186.E2
+    x1min: 69886.E3
+    x1max: 70186.E3
     x2min_pi: -0.25
     x2max_pi: 0.25
     x3min_pi: -0.25
@@ -65,8 +65,8 @@ geometry:
 
   cells:
     nx1: 100
-    nx2: 72
-    nx3: 72
+    nx2: 144
+    nx3: 144
     nghost: 3
 
 distribute:
