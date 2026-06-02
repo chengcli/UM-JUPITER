@@ -2,16 +2,16 @@
 
 # H2O-NH3 moist 2d + 3d
 # dart9
-MASTER_PORT=29500 DEVICE_ID=0 python -u run_jupiter_moist.py -c jupiter_crm2d_H2O-NH3_F100_nu0.01.yaml --output-dir ./260602_crm2d_H2O-NH3_F100_nu0.01 &> log.260602_crm2d_H2O-NH3_F100_nu0.01 &
-DEVICE_ID=1 python -u run_jupiter_moist.py -c jupiter_crm3d_H2O-NH3_F100_nu0.01.yaml --output-dir ./260602_crm3d_H2O-NH3_F100_nu0.01 &> log.260602_crm3d_H2O-NH3_F100_nu0.01 &
+#MASTER_PORT=29500 DEVICE_ID=0 python -u run_jupiter_moist.py -c jupiter_crm2d_H2O-NH3_F100_nu0.01.yaml --output-dir ./260602_crm2d_H2O-NH3_F100_nu0.01 &> log.260602_crm2d_H2O-NH3_F100_nu0.01 &
+#DEVICE_ID=1 python -u run_jupiter_moist.py -c jupiter_crm3d_H2O-NH3_F100_nu0.01.yaml --output-dir ./260602_crm3d_H2O-NH3_F100_nu0.01 &> log.260602_crm3d_H2O-NH3_F100_nu0.01 &
 
 # dart10
 #MASTER_PORT=29500 DEVICE_ID=0 python -u run_jupiter_moist.py -c jupiter_crm2d_H2O-NH3_F100_nu0.1.yaml --output-dir ./260602_crm2d_H2O-NH3_F100_nu0.1 &> log.260602_crm2d_H2O-NH3_F100_nu0.1 &
 #DEVICE_ID=1 python -u run_jupiter_moist.py -c jupiter_crm3d_H2O-NH3_F100_nu0.1.yaml --output-dir ./260602_crm3d_H2O-NH3_F100_nu0.1 &> log.260602_crm3d_H2O-NH3_F100_nu0.1 &
 
 # dart11
-#MASTER_PORT=29500 DEVICE_ID=0 python -u run_jupiter_moist.py -c jupiter_crm2d_H2O-NH3_1000.yaml --output-dir ./260518_crm2d_H2O-NH3_1000 &> log.260518_crm2d_H2O-NH3_1000 &
-#DEVICE_ID=1 python -u run_jupiter_moist.py -c jupiter_crm3d_H2O-NH3_1000.yaml --output-dir ./260518_crm3d_H2O-NH3_1000 &> log.260518_crm3d_H2O-NH3_1000 &
+#MASTER_PORT=29500 DEVICE_ID=0 python -u run_jupiter_moist.py -c jupiter_crm2d_H2O-NH3_F100_nu1.0.yaml --output-dir ./260602_crm2d_H2O-NH3_F100_nu1.0 &> log.260602_crm2d_H2O-NH3_F100_nu1.0 &
+#DEVICE_ID=1 python -u run_jupiter_moist.py -c jupiter_crm3d_H2O-NH3_F100_nu1.0.yaml --output-dir ./260602_crm3d_H2O-NH3_F100_nu1.0 &> log.260602_crm3d_H2O-NH3_F100_nu1.0 &
 
 # H2O-NH3-H2S moist + dry
 # dungeon1
