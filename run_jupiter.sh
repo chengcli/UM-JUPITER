@@ -2,8 +2,8 @@
 
 # H2O-NH3 moist 2d + 3d
 # dart9
-#DEVICE_ID=0 python -u run_jupiter_moist.py -c jupiter_crm2d_H2O-NH3_7.5.yaml --output-dir ./260518_crm2d_H2O-NH3_7.5 &> log.260518_crm2d_H2O-NH3_7.5 &
-#DEVICE_ID=1 python -u run_jupiter_moist.py -c jupiter_crm3d_H2O-NH3_7.5.yaml --output-dir ./260518_crm3d_H2O-NH3_7.5 &> log.260518_crm3d_H2O-NH3_7.5 &
+DEVICE_ID=0 python -u run_jupiter_moist.py -c jupiter_crm2d_H2O-NH3_F100_nu0.01.yaml --output-dir ./260602_crm2d_H2O-NH3_F100_nu0.01 &> log.260602_crm2d_H2O-NH3_F100_nu0.01 &
+DEVICE_ID=1 python -u run_jupiter_moist.py -c jupiter_crm3d_H2O-NH3_F100_nu0.01.yaml --output-dir ./260602_crm3d_H2O-NH3_F100_nu0.01 &> log.260602_crm3d_H2O-NH3_F100_nu0.01 &
 
 # dart10
 #DEVICE_ID=0 python -u run_jupiter_moist.py -c jupiter_crm2d_H2O-NH3_100.yaml --output-dir ./260518_crm2d_H2O-NH3_100 &> log.260518_crm2d_H2O-NH3_100 &
