@@ -117,9 +117,18 @@ forcing:
     flux: -1000.
     depth: 5
 
-  bot-heat:
-    flux: 1000.
-    depth: 5
+  diffusion:
+    nu_iso: 1.0
+    kappa_iso: 1.0
+
+  relax-bot-temp:
+    tau: 1.e3
+    btemp: 597.545
+
+  relax-bot-comp:
+    tau: 1.e3
+    species: ["H2O", "NH3"]
+    xfrac: [3.e-3, 3.2e-4]
 
 sedimentation:
   radius:
