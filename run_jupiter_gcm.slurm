@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=jupiter-gcm
+#SBATCH --job-name=jgcm
 #SBATCH --account=atreya0
 #SBATCH --partition=spgpu
 #SBATCH --nodes=1
@@ -44,5 +44,8 @@ srun torchrun \
   --master_addr="${MASTER_ADDR}" \
   --master_port="${MASTER_PORT}" \
   run_jupiter_moist.py \
-    --config jupiter_gcm_H2O-NH3-H2S_100.yaml \
-    --output-dir /home/chengcli/chengcli0/chengcli/2026.JupiterCRM/260525_gcm_H2O-NH3-H2S_100
+    --config jupiter_gcm_H2O-NH3-H2S_1000.yaml \
+    --output-dir /home/chengcli/chengcli0/chengcli/2026.JupiterCRM/260525_gcm_dry
+
+  #run_jupiter_dry.py \
+    #--config jupiter_gcm_dry.yaml \

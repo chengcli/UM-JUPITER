@@ -1,9 +1,8 @@
 import argparse
-import torch
 import yaml
-
-
+import torch
 from dataclasses import dataclass
+
 from snapy import Mesh, MeshOptions, kICY, kIV1
 from snapy import EquationOfState
 from kintera import ThermoX, ThermoY, KineticsOptions, Kinetics
