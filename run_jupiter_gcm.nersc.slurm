@@ -6,7 +6,8 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gpus-per-node=2
-#SBATCH --time=4:00:00
+#SBATCH --time=8:00:00
+#SBATCH --requeue
 #SBATCH --output=%x-%j.out
 #SBATCH --error=%x-%j.err
 
@@ -42,16 +43,55 @@ EXP_NAME=gcm_H2O-NH3_F100
 EXP_INP=${SLURM_JOB_NAME}_${EXP_NAME}.yaml
 EXP_DIR=${DATE_STR}_${EXP_NAME}
 
-cleanup() {
+REQUEUE_REQUESTED=0
+
+final_cleanup() {
+  status=$?
+
+  echo "Final cleanup with exit status ${status}"
+
   echo "Moving job input/output files to ${EXP_ROOT}/${EXP_DIR}"
-  mv "${SLURM_JOB_NAME}-${SLURM_JOB_ID}.out" "${EXP_ROOT}/${EXP_DIR}/" 2>/dev/null || true
-  mv "${SLURM_JOB_NAME}-${SLURM_JOB_ID}.err" "${EXP_ROOT}/${EXP_DIR}/" 2>/dev/null || true
-  cp "${EXP_INP}" "${EXP_DIR}/" 2>/dev/null || true
+  mkdir -p "${EXP_ROOT}/${EXP_DIR}"
+
+  mv "${SLURM_JOB_NAME}-${SLURM_JOB_ID}.out" \
+     "${EXP_ROOT}/${EXP_DIR}/" 2>/dev/null || true
+
+  mv "${SLURM_JOB_NAME}-${SLURM_JOB_ID}.err" \
+     "${EXP_ROOT}/${EXP_DIR}/" 2>/dev/null || true
+
+  cp "${EXP_INP}" "${EXP_ROOT}/${EXP_DIR}/" 2>/dev/null || true
+
+  if [[ "${REQUEUE_REQUESTED}" -eq 1 ]]; then
+    echo "Job was interrupted; saving checkpoint and requeuing..."
+
+    # Put your checkpoint command here if needed.
+    # Example:
+    # python save_checkpoint.py
+
+    scontrol requeue "${SLURM_JOB_ID}"
+  else
+    echo "Job exited normally or with non-requeue failure; not requeuing."
+  fi
+
+  exit "${status}"
 }
 
-trap cleanup EXIT
-trap 'exit 130' INT
-trap 'exit 143' TERM
+handle_term() {
+  echo "Received TERM signal"
+  REQUEUE_REQUESTED=1
+  exit 143
+}
+
+handle_int() {
+  echo "Received INT signal"
+  exit 130
+}
+
+trap final_cleanup EXIT
+trap handle_int INT
+trap handle_term TERM
+
+echo "Restart count: ${SLURM_RESTART_COUNT:-0}"
 
 srun torchrun \
   --nnodes="${NNODES}" \
@@ -59,4 +99,6 @@ srun torchrun \
   --node_rank=${SLURM_PROCID} \
   --master_addr="${MASTER_ADDR}" \
   --master_port="${MASTER_PORT}" \
-  run_jupiter_moist.py --config ${EXP_INP} --output-dir ${EXP_ROOT}/${EXP_DIR}
+  run_jupiter_moist.py --config ${EXP_INP} \
+                       --restart ${SLURM_JOB_NAME}_${EXP_NAME}.final.restart \
+                       --output-dir ${EXP_ROOT}/${EXP_DIR}
