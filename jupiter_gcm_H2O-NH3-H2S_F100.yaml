@@ -57,7 +57,7 @@ geometry:
 
   bounds:
     x1min: 69886.E3
-    x1max: 70186.e3
+    x1max: 70186.E3
     x2min_pi: -0.25
     x2max_pi: 0.25
     x3min_pi: -0.25
@@ -130,16 +130,21 @@ forcing:
     grav1: -22.
 
   top-cool:
-    flux: -1000.
-    depth: 5
-
-  bot-heat:
-    flux: 1000
+    flux: -100.
     depth: 5
 
   coriolis:
     type: xyz
     omega1: 1.7585e-4
+
+  relax-bot-temp:
+    tau: 1.e3
+    btemp: 597.5446
+
+  relax-bot-comp:
+    tau: 1.e3
+    species: ["H2O", "NH3", "H2S"]
+    xfrac: [3.e-3, 3.2e-4, 1.e-5]
 
 sedimentation:
   radius:
@@ -164,7 +169,7 @@ reactions:
 
   - equation: H2O(l) => H2O(l,p)
     type: coagulation
-    rate-constant: {A: 1.e-4, b: 0, Ea_R: 0.}
+    rate-constant: {A: 1.e-5, b: 0, Ea_R: 0.}
 
   - equation: H2O(l,p) => H2O
     type: evaporation
@@ -176,7 +181,7 @@ reactions:
 
   - equation: NH3(s) => NH3(s,p)
     type: coagulation
-    rate-constant: {A: 1.e-4, b: 0, Ea_R: 0.}
+    rate-constant: {A: 1.e-5, b: 0, Ea_R: 0.}
 
   - equation: NH3(s,p) => NH3
     type: evaporation
@@ -188,7 +193,7 @@ reactions:
 
   - equation: NH4SH(s) => NH4SH(s,p)
     type: coagulation
-    rate-constant: {A: 1.e-4, b: 0, Ea_R: 0.}
+    rate-constant: {A: 1.e-5, b: 0, Ea_R: 0.}
 
   - equation: NH4SH(s,p) => NH3 + H2S
     type: evaporation

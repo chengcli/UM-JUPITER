@@ -1,13 +1,13 @@
 #!/bin/bash
-#SBATCH --job-name=jgcm
+#SBATCH --job-name=jcrm
 #SBATCH --account=atreya0
-#SBATCH --partition=spgpu
+#SBATCH --partition=gpu
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --gres=gpu:3
-#SBATCH --cpus-per-task=4
-#SBATCH --mem=64G
-#SBATCH --time=24:00:00
+#SBATCH --gres=gpu:1
+#SBATCH --cpus-per-task=2
+#SBATCH --mem=20G
+#SBATCH --time=48:00:00
 #SBATCH --output=%x-%j.out
 #SBATCH --error=%x-%j.err
 
@@ -21,7 +21,7 @@ source ${HOME}/pyenv/bin/activate
 export MASTER_ADDR="$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)"
 export MASTER_PORT="${PORT}"
 export NNODES="${SLURM_JOB_NUM_NODES}"
-export GPUS_PER_NODE=3
+export GPUS_PER_NODE=1
 export WORLD_SIZE=$((NNODES * GPUS_PER_NODE))
 
 echo "MASTER_ADDR=${MASTER_ADDR}"
@@ -44,5 +44,5 @@ srun torchrun \
   --master_addr="${MASTER_ADDR}" \
   --master_port="${MASTER_PORT}" \
   run_jupiter_moist.py \
-    --config jupiter_gcm_H2O-NH3-H2S_F100.yaml \
-    --output-dir /home/chengcli/chengcli0/chengcli/2026.JupiterCRM/260602_gcm_F100
+    --config jupiter_crm2d_H2O-NH3_F100_nu1000.0.yaml \
+    --output-dir /home/chengcli/chengcli0/chengcli/2026.JupiterCRM/260602_crm2d_F100_nu1000.0
