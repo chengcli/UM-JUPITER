@@ -17,3 +17,12 @@ pip install paddle
 
 ## run a test case
 python straka.py
+
+## dart3
+crm2d_H2O-NH3_F100_nu1.0
+crm2d_H2O-NH3_F100_nu10.0
+
+
+# dart2
+crm2d_H2O-NH3_F100_nu100.0
+crm2d_H2O-NH3_F100_nu1000.0
