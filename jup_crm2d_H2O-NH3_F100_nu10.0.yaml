@@ -118,8 +118,8 @@ forcing:
     depth: 5
 
   diffusion:
-    nu_iso: 1.0
-    kappa_iso: 1.0
+    nu_iso: 10.0
+    kappa_iso: 10.0
 
   relax-bot-temp:
     tau: 1.e3

@@ -114,7 +114,7 @@ forcing:
     grav1: -22.
 
   top-cool:
-    flux: -100.
+    flux: -1000.
     depth: 5
 
   diffusion:
