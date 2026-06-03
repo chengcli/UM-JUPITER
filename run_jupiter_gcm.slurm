@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=jgcm
+#SBATCH --job-name=jup
 #SBATCH --account=atreya0
 #SBATCH --partition=spgpu
 #SBATCH --nodes=1
@@ -37,12 +37,27 @@ echo "NODELIST=${SLURM_JOB_NODELIST}"
 # export GLOO_SOCKET_IFNAME=ib0
 
 # ---- Launch one torchrun per node; torchrun spawns 2 procs on that node ----
+DATE_STR=$(date +%y%m%d)
+EXP_ROOT=/home/chengcli/chengcli0/chengcli/2026.JupiterCRM/
+EXP_NAME=gcm_H2O-NH3-H2S_F100
+EXP_INP=${SLURM_JOB_NAME}_${EXP_NAME}.yaml
+EXP_DIR=${DATE_STR}_${EXP_NAME}
+
+cleanup() {
+  echo "Moving job input/output files to ${EXP_DIR}"
+  mv "${SLURM_JOB_NAME}-${SLURM_JOB_ID}.out" "${EXP_DIR}/" 2>/dev/null || true
+  mv "${SLURM_JOB_NAME}-${SLURM_JOB_ID}.err" "${EXP_DIR}/" 2>/dev/null || true
+  cp "${EXP_INP}" "${EXP_DIR}/" 2>/dev/null || true
+}
+
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
 srun torchrun \
   --nnodes="${NNODES}" \
   --nproc_per_node="${GPUS_PER_NODE}" \
   --node_rank=${SLURM_PROCID} \
   --master_addr="${MASTER_ADDR}" \
   --master_port="${MASTER_PORT}" \
-  run_jupiter_moist.py \
-    --config jupiter_gcm_H2O-NH3-H2S_F100.yaml \
-    --output-dir /home/chengcli/chengcli0/chengcli/2026.JupiterCRM/260602_gcm_F100
+  run_jupiter_moist.py --config ${EXP_IN} --output-dir ${EXP_ROOT}/${EXP_DIR}
