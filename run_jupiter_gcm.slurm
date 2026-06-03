@@ -4,8 +4,8 @@
 #SBATCH --partition=spgpu
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --gres=gpu:3
-#SBATCH --cpus-per-task=3
+#SBATCH --gres=gpu:1
+#SBATCH --cpus-per-task=2
 #SBATCH --mem=64G
 #SBATCH --time=00:30:00
 #SBATCH --output=%x-%j.out
@@ -44,8 +44,8 @@ srun torchrun \
   --master_addr="${MASTER_ADDR}" \
   --master_port="${MASTER_PORT}" \
   run_jupiter_moist.py \
-    --config jupiter_gcm_H2O-NH3-H2S_1000.yaml \
-    --output-dir /home/chengcli/chengcli0/chengcli/2026.JupiterCRM/260525_gcm_dry
+    --config jupiter_gcm_H2O-NH3-H2S_F100.yaml \
+    --output-dir /home/chengcli/chengcli0/chengcli/2026.JupiterCRM/260602_gcm_F100
 
   #run_jupiter_dry.py \
     #--config jupiter_gcm_dry.yaml \
