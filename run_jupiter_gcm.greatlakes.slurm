@@ -50,17 +50,6 @@ final_cleanup() {
 
   echo "Final cleanup with exit status ${status}"
 
-  echo "Moving job input/output files to ${EXP_ROOT}/${EXP_DIR}"
-  mkdir -p "${EXP_ROOT}/${EXP_DIR}"
-
-  mv "${SLURM_JOB_NAME}-${SLURM_JOB_ID}.out" \
-     "${EXP_ROOT}/${EXP_DIR}/" 2>/dev/null || true
-
-  mv "${SLURM_JOB_NAME}-${SLURM_JOB_ID}.err" \
-     "${EXP_ROOT}/${EXP_DIR}/" 2>/dev/null || true
-
-  cp "${EXP_INP}" "${EXP_ROOT}/${EXP_DIR}/" 2>/dev/null || true
-
   if [[ "${REQUEUE_REQUESTED}" -eq 1 ]]; then
     echo "Job was interrupted; saving checkpoint and requeuing..."
 
@@ -71,6 +60,16 @@ final_cleanup() {
     scontrol requeue "${SLURM_JOB_ID}"
   else
     echo "Job exited normally or with non-requeue failure; not requeuing."
+    echo "Moving job input/output files to ${EXP_ROOT}/${EXP_DIR}"
+    mkdir -p "${EXP_ROOT}/${EXP_DIR}"
+
+    mv "${SLURM_JOB_NAME}-${SLURM_JOB_ID}.out" \
+       "${EXP_ROOT}/${EXP_DIR}/" 2>/dev/null || true
+
+    mv "${SLURM_JOB_NAME}-${SLURM_JOB_ID}.err" \
+       "${EXP_ROOT}/${EXP_DIR}/" 2>/dev/null || true
+
+    cp "${EXP_INP}" "${EXP_ROOT}/${EXP_DIR}/" 2>/dev/null || true
   fi
 
   exit "${status}"
