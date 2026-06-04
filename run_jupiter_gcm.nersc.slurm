@@ -37,11 +37,10 @@ echo "NODELIST=${SLURM_JOB_NODELIST}"
 # export GLOO_SOCKET_IFNAME=ib0
 
 # ---- Launch one torchrun per node ----
-DATE_STR=$(date +%y%m%d)
 EXP_ROOT=${HOME}/scratch/2026.JupiterCRM/
 EXP_NAME=gcm_H2O-NH3_F100
 EXP_INP=${SLURM_JOB_NAME}_${EXP_NAME}.yaml
-EXP_DIR=${DATE_STR}_${EXP_NAME}
+EXP_DIR=${SLURM_JOB_NAME}_${EXP_NAME}
 
 REQUEUE_REQUESTED=0
 
