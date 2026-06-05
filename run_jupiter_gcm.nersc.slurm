@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gpus-per-node=2
-#SBATCH --time=8:00:00
+#SBATCH --time=23:00:00
 #SBATCH --requeue
 #SBATCH --output=%x-%j.out
 #SBATCH --error=%x-%j.err
