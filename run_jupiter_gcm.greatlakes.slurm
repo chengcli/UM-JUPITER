@@ -7,7 +7,7 @@
 #SBATCH --gres=gpu:3
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=64G
-#SBATCH --time=24:00:00
+#SBATCH --time=48:00:00
 #SBATCH --requeue
 #SBATCH --output=%x-%j.out
 #SBATCH --error=%x-%j.err
@@ -15,7 +15,7 @@
 set -euo pipefail
 
 # ---- User settings ----
-PORT=29500
+PORT=$(( RANDOM % 101 + 29500 ))
 source ${HOME}/pyenv/bin/activate
 
 # ---- Derive rendezvous info from Slurm allocation ----
