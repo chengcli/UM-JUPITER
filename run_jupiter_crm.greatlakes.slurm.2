@@ -39,7 +39,7 @@ echo "NODELIST=${SLURM_JOB_NODELIST}"
 
 # ---- Launch one torchrun per node; torchrun spawns 2 procs on that node ----
 EXP_ROOT=/home/chengcli/chengcli0/chengcli/2026.JupiterCRM/
-EXP_NAME=crm3d_H2O-NH3_F100_nu0.01
+EXP_NAME=crm3d_H2O-NH3_F100_nu0.1
 EXP_INP=${SLURM_JOB_NAME}_${EXP_NAME}.yaml
 EXP_DIR=${SLURM_JOB_NAME}_${EXP_NAME}
 
