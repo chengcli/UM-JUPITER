@@ -23,7 +23,6 @@ from plot_horizontal_mean_profiles import (
     DEFAULT_MAX_PRESSURE_BAR,
     DEFAULT_OUTPUT_DIR,
     PRESSURE_REFERENCE_PA,
-    PRESSURE_VARIABLE,
     PRESSURE_MARKERS_BAR,
     read_pressure_profile,
     read_variable_stats,
@@ -237,12 +236,11 @@ def main() -> None:
     plot_path = args.output_dir / f"{base_name}.png"
     csv_path = args.output_dir / f"{base_name}.csv"
 
-    plot_profiles(plot_path, profiles, args.max_pressure, not args.no_std)
-    write_csv(csv_path, profiles)
-
-    print(f"Used {len(profiles)} cases from {args.case_glob}")
+    print(f"Used {len(case_dirs)} cases from {args.case_glob}")
     for label, snapshots in snapshots_by_case.items():
         print(f"{label}: snapshots {snapshots[0]}..{snapshots[-1]} ({len(snapshots)})")
+    plot_profiles(plot_path, profiles, args.max_pressure, not args.no_std)
+    write_csv(csv_path, profiles)
     print(f"Wrote {plot_path}")
     print(f"Wrote {csv_path}")
 
