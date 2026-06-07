@@ -35,8 +35,13 @@ from plot_horizontal_mean_profiles import (
 )
 
 
-DEFAULT_CASE_GLOB = Path(
-    "/home/chengcli/data/2026.JupiterCRM/jup_crm2d_H2O-NH3_F100*"
+DEFAULT_ROOT = Path("/home/chengcli/data/2026.JupiterCRM")
+DEFAULT_CASES = (
+    "jup_crm2d_H2O-NH3_F10_nu0.01",
+    "jup_crm2d_H2O-NH3_F10_nu0.1",
+    "jup_crm2d_H2O-NH3_F10_nu1.0",
+    "jup_crm2d_H2O-NH3_F10_nu10.0",
+    "jup_crm2d_H2O-NH3_F10_nu100.0",
 )
 DEFAULT_LAST = 20
 DEFAULT_FIELD = "out1"
@@ -67,10 +72,16 @@ def parse_args() -> argparse.Namespace:
         )
     )
     parser.add_argument(
-        "--case-glob",
+        "--root",
         type=Path,
-        default=DEFAULT_CASE_GLOB,
-        help=f"Glob matching case directories. Default: {DEFAULT_CASE_GLOB}",
+        default=DEFAULT_ROOT,
+        help=f"Directory containing case output folders. Default: {DEFAULT_ROOT}",
+    )
+    parser.add_argument(
+        "--cases",
+        nargs="+",
+        default=list(DEFAULT_CASES),
+        help="Case directory names to plot.",
     )
     parser.add_argument(
         "--last",
@@ -112,13 +123,13 @@ def case_label(path: Path) -> str:
     return f"$\\nu=${match.group('nu')}"
 
 
-def resolve_case_dirs(case_glob: Path) -> list[Path]:
-    case_dirs = sorted(
-        [path for path in case_glob.parent.glob(case_glob.name) if path.is_dir()],
-        key=natural_case_key,
-    )
-    if not case_dirs:
-        raise FileNotFoundError(f"No case directories matched {case_glob}")
+def resolve_case_dirs(root: Path, cases: list[str]) -> list[Path]:
+    case_dirs = [root / case for case in cases]
+    missing = [path for path in case_dirs if not path.is_dir()]
+    if missing:
+        raise FileNotFoundError(
+            "Case directories do not exist: " + ", ".join(str(path) for path in missing)
+        )
     return case_dirs
 
 
@@ -330,10 +341,11 @@ def main() -> None:
     if args.max_pressure <= 0.0:
         raise ValueError("--max-pressure must be positive")
 
-    case_dirs = resolve_case_dirs(args.case_glob.expanduser())
+    root = args.root.expanduser()
+    case_dirs = resolve_case_dirs(root, args.cases)
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"Used {len(case_dirs)} cases from {args.case_glob}")
+    print(f"Used {len(case_dirs)} cases from {root}")
     for spec in VAPOR_SPECS:
         profiles: dict[str, tuple[np.ndarray, dict[str, tuple[np.ndarray, np.ndarray]]]] = {}
         snapshots_by_case: dict[str, list[str]] = {}
@@ -349,7 +361,7 @@ def main() -> None:
             snapshots_by_case[label] = snapshots
 
         base_name = (
-            f"jup_crm2d_H2O-NH3_F100_{spec.output_variable}_profiles_last{args.last}"
+            f"jup_crm2d_H2O-NH3_F10_{spec.output_variable}_profiles_last{args.last}"
         )
         plot_path = args.output_dir / f"{base_name}.png"
         csv_path = args.output_dir / f"{base_name}.csv"
