@@ -57,7 +57,7 @@ geometry:
 distribute:
   backend: nccl
   layout: cubed-sphere
-  blocks_per_process: 1
+  blocks_per_process: 3
   nb2: 1
   nb3: 1
   verbose: false
@@ -115,12 +115,12 @@ forcing:
     grav1: -22.
 
   top-cool:
-    flux: -1000.
+    flux: -100.
     depth: 5
 
   coriolis:
     type: xyz
-    omega1: 1.7585e-4
+    omega1: 8.75e-5
 
   relax-bot-temp:
     tau: 1.e3

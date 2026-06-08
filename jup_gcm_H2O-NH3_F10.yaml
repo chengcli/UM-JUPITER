@@ -97,7 +97,7 @@ integration:
   cfl: 0.45
   implicit-scheme: 9
   nlim: -1
-  tlim: 500.e5
+  tlim: 2500.e5
   ncycle_out: 50
 
 outputs:
