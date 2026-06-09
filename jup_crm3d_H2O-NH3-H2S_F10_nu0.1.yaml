@@ -133,8 +133,8 @@ forcing:
     depth: 5
 
   diffusion:
-    nu_iso: 0.01
-    kappa_iso: 0.01
+    nu_iso: 0.1
+    kappa_iso: 0.1
 
   coriolis:
     type: xyz

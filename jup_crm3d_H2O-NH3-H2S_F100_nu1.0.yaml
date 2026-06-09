@@ -72,7 +72,7 @@ geometry:
 distribute:
   backend: nccl
   layout: slab
-  nb2: 1
+  nb2: 2
   nb3: 1
   verbose: false
 
@@ -111,7 +111,7 @@ integration:
   cfl: 0.9
   implicit-scheme: 1
   nlim: -1
-  tlim: 500.e5
+  tlim: 2500.e5
   ncycle_out: 50
 
 outputs:
