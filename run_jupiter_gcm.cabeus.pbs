@@ -5,13 +5,11 @@
 #PBS -q gpu_devel
 #PBS -l walltime=0:30:00
 #PBS -r y
+#PBS -j oe
 ##PBS -l place=scatter:excl
 
 cd "$PBS_O_WORKDIR"
 source "${HOME}/pyenv/bin/activate"
-
-export CUDA_VISIBLE_DEVICES=0,1,2
-export OMP_NUM_THREADS=2
 
 # PBS_NODEFILE can contain repeated hostnames for the CPU slots on each node.
 export MASTER_ADDR="$(head -n 1 "${PBS_NODEFILE}")"
@@ -24,8 +22,10 @@ export RDZV_ID="$PBS_JOBID"
 
 export EXP_ROOT="${HOME}/scratch/2026.JupiterGCM"
 export EXP_NAME=gcm_H2O-NH3_F10
+
+export EXP_RUN=run_jupiter_moist.py
 export EXP_INP=${PBS_JOBNAME}_${EXP_NAME}.yaml
-export EXP_DIR=${PBS_JOBNAME}_${EXP_NAME}
+export EXP_DIR="${EXP_ROOT}/${PBS_JOBNAME}_${EXP_NAME}"
 
 echo "PBS_NODEFILE:"
 cat "$PBS_NODEFILE"
@@ -34,8 +34,6 @@ echo "MASTER_ADDR=$MASTER_ADDR"
 echo "RDZV_ID=$RDZV_ID"
 
 pbsdsh -v -- env \
-  CUDA_VISIBLE_DEVICES="$CUDA_VISIBLE_DEVICES" \
-  OMP_NUM_THREADS="$OMP_NUM_THREADS" \
   MASTER_ADDR="$MASTER_ADDR" \
   MASTER_PORT="$MASTER_PORT" \
   NNODES="$NNODES" \
@@ -44,6 +42,7 @@ pbsdsh -v -- env \
   WORLD_SIZE="$WORLD_SIZE" \
   RDZV_ID="$RDZV_ID" \
   EXP_ROOT="$EXP_ROOT" \
+  EXP_RUN="$EXP_RUN" \
   EXP_INP="$EXP_INP" \
   EXP_DIR="$EXP_DIR" \
-  bash "${PBS_O_WORKDIR}/run_jupiter_gcm.cabeus.worker.sh"
+  bash "${PBS_O_WORKDIR}/worker.cabeus.sh"

@@ -30,5 +30,5 @@ exec torchrun \
   --rdzv-id="$RDZV_ID" \
   --rdzv-backend=c10d \
   --rdzv-endpoint="$MASTER_ADDR:$MASTER_PORT" \
-  run_jupiter_moist.py --config "${EXP_INP}" \
-                       --output-dir "${EXP_ROOT}/${EXP_DIR}"
+  ${EXP_RUN} --config "${EXP_INP}" \
+             --output-dir "${EXP_DIR}"
