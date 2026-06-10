@@ -1,12 +1,11 @@
 #!/bin/bash
 
-#PBS -l select=2:ncpus=6:ngpus=3:mpiprocs=1:mem=128G:model=mil_a100
+#PBS -l select=6:ncpus=64:ngpus=4:mpiprocs=1:mem=256G:model=mil_a100
 #PBS -N jup
-#PBS -q gpu_devel
-#PBS -l walltime=0:30:00
+#PBS -q gpu_normal
+#PBS -l walltime=8:00:00
 #PBS -r y
-#PBS -j oe
-##PBS -l place=scatter:excl
+#PBS -l place=scatter:excl
 
 cd "$PBS_O_WORKDIR"
 source "${HOME}/pyenv/bin/activate"
@@ -16,15 +15,16 @@ export MASTER_ADDR="$(head -n 1 "${PBS_NODEFILE}")"
 export MASTER_PORT=$((RANDOM % 101 + 29500))
 export NNODES="$(sort -u "${PBS_NODEFILE}" | wc -l | tr -d ' ')"
 export NODELIST="$(awk '!seen[$0]++' "${PBS_NODEFILE}" | paste -sd, -)"
-export GPUS_PER_NODE=3
+export GPUS_PER_NODE=4
 export WORLD_SIZE=$((NNODES * GPUS_PER_NODE))
 export RDZV_ID="$PBS_JOBID"
 
 export EXP_ROOT="${HOME}/scratch/2026.JupiterGCM"
-export EXP_NAME=gcm_H2O-NH3_F10
+export EXP_NAME=gcm_H2O-NH3_F100_C288
 
 export EXP_RUN=run_jupiter_moist.py
 export EXP_INP=${PBS_JOBNAME}_${EXP_NAME}.yaml
+export EXP_RST=${PBS_JOBNAME}_${EXP_NAME}.init.restart
 export EXP_DIR="${EXP_ROOT}/${PBS_JOBNAME}_${EXP_NAME}"
 
 echo "PBS_NODEFILE:"
@@ -44,5 +44,6 @@ pbsdsh -v -- env \
   EXP_ROOT="$EXP_ROOT" \
   EXP_RUN="$EXP_RUN" \
   EXP_INP="$EXP_INP" \
+  EXP_RST="$EXP_RST" \
   EXP_DIR="$EXP_DIR" \
   bash "${PBS_O_WORKDIR}/worker.cabeus.sh"
