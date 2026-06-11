@@ -131,6 +131,61 @@ For F10 experiments, initial profiles are extracted from the corresponding
 F100 case's snapshot `00000`. Compact pressure/profile arrays are saved under
 `diagnostics/initial_profile_cache/` and reused by later runs.
 
+### Species Path Contours
+
+`scripts/plot_species_path_contours.py` creates one three-panel horizontal map
+per matched case using the vapor, cloud, and precipitation path diagnostics
+from `out2`. Each map is the time average of the latest selected snapshots.
+
+```bash
+python scripts/plot_species_path_contours.py \
+  --case-regex 'jup_crm3d_H2O-NH3-H2S_F10_nu(0\.01|0\.1|1\.0)' \
+  --species H2O \
+  --last 20
+```
+
+The default invocation runs this H2O/3D-F10 selection and writes one PNG per
+case under `diagnostics/`. Use `--species NH3` or `--species H2S` for the
+other species.
+
+To mark strong vertical-motion columns, first create a compact cache from
+`vel1` in the latest snapshots:
+
+```bash
+python scripts/cache_vel1_column_exceedance.py \
+  --case-regex 'jup_crm3d_H2O-NH3-H2S_F10_nu0\.01' \
+  --last 20 --threshold 1 --max-locations 500
+```
+
+A location qualifies when any snapshot has `vel1` above the effective
+threshold anywhere in its vertical column. The threshold starts at the
+requested value and increases in `0.5 m s^-1` increments until no more than
+`--max-locations` locations qualify. The cache retains per-snapshot masks,
+counts, fractions, the union mask, and maximum `vel1`.
+
+Use the cache to add black `X` markers to a species-path plot:
+
+```bash
+python scripts/plot_species_path_contours.py \
+  --case-regex 'jup_crm3d_H2O-NH3-H2S_F10_nu0\.01' \
+  --species H2O --last 20 \
+  --vel1-exceedance-cache diagnostics/vel1_column_exceedance_cache/jup_crm3d_H2O-NH3-H2S_F10_nu0.01_vel1_gt_1_last20.npz
+```
+
+Run the complete kappa=0.01 workflow, including the adaptive cache, marked
+H2O plot, and standard NH3/H2S plots:
+
+```bash
+scripts/create_species_path_contours.sh
+```
+
+Optional positional arguments set the snapshot count, initial threshold, and
+maximum marked locations:
+
+```bash
+scripts/create_species_path_contours.sh 20 1.0 500
+```
+
 ## Multi-Row Profile Grid
 
 `scripts/plot_case_profile_grid.py` consolidates existing profile CSV/cache
@@ -340,6 +395,8 @@ Use each script's built-in help for the complete current interface:
 python scripts/plot_case_theta_profiles.py --help
 python scripts/plot_case_rms_vel1_profiles.py --help
 python scripts/plot_case_vapor_profiles.py --help
+python scripts/plot_species_path_contours.py --help
+python scripts/cache_vel1_column_exceedance.py --help
 python scripts/plot_theta_stacked_time_series.py --help
 python scripts/plot_rms_vel1_time_pressure_contour.py --help
 python scripts/plot_theta_time_pressure_contour.py --help
