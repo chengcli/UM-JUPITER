@@ -48,13 +48,19 @@ printf '  %s\n' "${cases[@]}"
 echo "Creating potential-temperature profile plot..."
 python scripts/plot_case_theta_profiles.py \
     --root "$data_root" \
-    --cases "${cases[@]}" \
+    --case-regex "$case_regex" \
+    "$@"
+
+echo "Creating RMS vertical-velocity profile plot..."
+python scripts/plot_case_rms_vel1_profiles.py \
+    --root "$data_root" \
+    --case-regex "$case_regex" \
     "$@"
 
 echo "Creating ${species[*]} species profile plots..."
 python scripts/plot_case_vapor_profiles.py \
     --root "$data_root" \
-    --cases "${cases[@]}" \
+    --case-regex "$case_regex" \
     --species "${species[@]}" \
     "$@"
 

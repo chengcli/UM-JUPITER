@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
 
+from case_selection import resolve_case_dirs
 from plot_time_evolution import (
     DEFAULT_OUTPUT_DIR,
     PRESSURE_REFERENCE_PA,
@@ -36,12 +37,7 @@ from plot_time_evolution import (
 
 
 DEFAULT_ROOT = Path("/home/chengcli/data/2026.JupiterCRM")
-DEFAULT_CASES = (
-    "jup_crm2d_H2O-NH3_F100_nu0.01",
-    "jup_crm2d_H2O-NH3_F100_nu0.1",
-    "jup_crm2d_H2O-NH3_F100_nu1.0",
-    "jup_crm2d_H2O-NH3_F100_nu10.0",
-)
+DEFAULT_CASE_REGEX = r"jup_crm2d_H2O-NH3_F100_nu(0\.01|0\.1|1\.0|10\.0)"
 FIELD = "out2"
 VARIABLE = "theta"
 PRESSURE_LEVELS_BAR = (1.0, 6.0, 30.0)
@@ -62,10 +58,9 @@ def parse_args() -> argparse.Namespace:
         help=f"Directory containing case output folders. Default: {DEFAULT_ROOT}",
     )
     parser.add_argument(
-        "--cases",
-        nargs="+",
-        default=list(DEFAULT_CASES),
-        help="Case directory names to plot.",
+        "--case-regex",
+        default=DEFAULT_CASE_REGEX,
+        help=f"Full-match regex selecting case directory names. Default: {DEFAULT_CASE_REGEX}",
     )
     parser.add_argument(
         "--first",
@@ -102,13 +97,6 @@ def parse_args() -> argparse.Namespace:
     return args
 
 
-def natural_case_key(path: Path) -> tuple[str, float]:
-    match = re.search(r"_nu(?P<nu>[0-9.]+)$", path.name)
-    if match is None:
-        return path.name, np.inf
-    return path.name[: match.start()], float(match.group("nu"))
-
-
 def case_label(path: Path) -> str:
     match = re.search(r"_nu(?P<nu>[0-9.]+)$", path.name)
     if match is None:
@@ -118,16 +106,6 @@ def case_label(path: Path) -> str:
 
 def safe_name(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]+", "-", value)
-
-
-def resolve_case_dirs(root: Path, cases: list[str]) -> list[Path]:
-    case_dirs = [root / case for case in cases]
-    missing = [path for path in case_dirs if not path.is_dir()]
-    if missing:
-        raise FileNotFoundError(
-            "Case directories do not exist: " + ", ".join(str(path) for path in missing)
-        )
-    return case_dirs
 
 
 def read_theta_pressure_time_series(
@@ -323,7 +301,7 @@ def plot_stacked_time_series(
 def main() -> None:
     args = parse_args()
     root = args.root.expanduser()
-    case_dirs = resolve_case_dirs(root, args.cases)
+    case_dirs = resolve_case_dirs(root, args.case_regex)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     cache_dir = (
         args.cache_dir.expanduser()

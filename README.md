@@ -22,6 +22,7 @@ The default simulation-data root used by the case-comparison scripts is:
 regular expression and creates:
 
 - A combined potential-temperature profile plot.
+- A combined RMS vertical-velocity profile plot.
 - H2O and NH3 vapor/cloud/precipitation profile plots.
 - An H2S profile plot when the experiment name contains `H2S`.
 - A CSV table corresponding to each plot.
@@ -69,19 +70,36 @@ over the latest snapshots and plotted against log pressure.
 
 ```bash
 python scripts/plot_case_theta_profiles.py \
-  --cases case_nu0.01 case_nu0.1 case_nu1.0 \
+  --case-regex 'jup_crm2d_H2O-NH3_F10_nu(0\.01|0\.1|1\.0)' \
   --last 20
 ```
 
 Useful options:
 
 - `--root PATH`: directory containing case folders.
-- `--cases CASE ...`: ordered list of cases to compare.
+- `--case-regex REGEX`: full-match regex selecting case folders to compare.
 - `--last N`: number of final snapshots to average.
 - `--max-pressure BAR`: deepest displayed pressure.
 - `--no-std`: disable the mean-plus/minus-standard-deviation shading.
 
 The black curve is the snapshot-`00000` initial theta profile.
+
+### RMS Vertical Velocity
+
+`scripts/plot_case_rms_vel1_profiles.py` plots the root-mean-square vertical
+velocity profile for explicitly selected cases. At each vertical level, it
+computes `sqrt(mean(vel1^2))` over horizontal cells and the selected latest
+snapshots. Shading shows the standard deviation of the per-snapshot horizontal
+RMS profiles.
+
+```bash
+python scripts/plot_case_rms_vel1_profiles.py \
+  --case-regex 'jup_crm2d_H2O-NH3_F10_nu(0\.01|0\.1|1\.0)' \
+  --last 20
+```
+
+The script reads `vel1` from `out1` and writes a combined PNG and CSV table.
+Use `--no-std` to disable the temporal standard-deviation shading.
 
 ### Species, Clouds, and Precipitation
 
@@ -95,7 +113,7 @@ The black curve is the snapshot-`00000` initial theta profile.
 
 ```bash
 python scripts/plot_case_vapor_profiles.py \
-  --cases case_nu0.01 case_nu0.1 case_nu1.0 \
+  --case-regex 'jup_crm2d_H2O-NH3_F10_nu(0\.01|0\.1|1\.0)' \
   --species H2O NH3 H2S \
   --last 20
 ```
@@ -151,7 +169,7 @@ compact stacked case panels:
 
 ```bash
 python scripts/plot_theta_stacked_time_series.py \
-  --cases case_nu0.01 case_nu0.1 case_nu1.0
+  --case-regex 'jup_crm2d_H2O-NH3_F100_nu(0\.01|0\.1|1\.0)'
 ```
 
 Each case is read in a separate process. Compact per-case NPZ files are stored
@@ -174,7 +192,7 @@ temperature profiles, evaluates `dT/dz` in `K km^-1`, and samples the result at
 
 ```bash
 python scripts/plot_dtdz_pressure_stacked_time_series.py \
-  --cases case_nu10.0 case_nu100.0 case_nu1000.0 \
+  --case-regex 'jup_crm2d_H2O-NH3_F100_nu(10\.0|100\.0|1000\.0)' \
   --refresh-cache
 ```
 
@@ -225,6 +243,78 @@ python scripts/plot_pressure_level_contours.py /path/to/case \
 
 Special variables include `ke`, `vel1p`, and `vel1m`.
 
+### RMS Vertical-Velocity Time-Pressure Contour
+
+Plots horizontal RMS `vel1` versus time and log pressure for one case:
+
+```bash
+python scripts/plot_rms_vel1_time_pressure_contour.py \
+  --case-regex 'jup_crm2d_H2O-NH3_F100_nu0\.01' \
+  --max-time 300
+```
+
+The first run writes a compact NPZ cache under
+`diagnostics/rms_vel1_time_pressure_cache/`. Use `--refresh-cache` after
+simulation output changes. `--running-average` is a centered time window in
+days. The standard comparison plots use unaveraged values, `YlOrRd`, discrete
+`0.25 m s^-1` levels, and a `2.5 m s^-1` upper limit.
+
+### Potential-Temperature Time-Pressure Contour
+
+Plots horizontal-mean potential temperature versus time and log pressure:
+
+```bash
+python scripts/plot_theta_time_pressure_contour.py \
+  --case-regex 'jup_crm2d_H2O-NH3_F100_nu0\.01' \
+  --max-time 300
+```
+
+The default shared contour range is `158-166 K` at `0.5 K` spacing. Compact
+per-case caches are stored under `diagnostics/theta_time_pressure_cache/`.
+Black labeled contours show RMS-`vel1` from the matching RMS cache; their
+default range starts at `0.6 m s^-1` with `0.2 m s^-1` spacing, after a
+centered 3-day running average.
+
+### Stacked RMS-Velocity and Theta Contours
+
+Composes existing RMS-`vel1` and theta caches into a two-row figure:
+
+```bash
+python scripts/plot_rms_vel1_theta_time_pressure_stack.py \
+  --case-regex 'jup_crm2d_H2O-NH3_F100_nu0\.01'
+```
+
+The top panel shows RMS-`vel1`; the bottom panel shows potential temperature.
+The script exits with cache-generation commands if either required cache is
+missing. The composed figure uses `YlOrRd` for RMS-`vel1`, `YlGnBu` for theta,
+and a 2:1 horizontal-to-vertical aspect ratio.
+
+### Create Standard Time-Pressure Contours
+
+`scripts/create_time_pressure_contours.sh` creates all three time-pressure
+products for the 2D and 3D F100, kappa=0.01 cases:
+
+- Unaveraged RMS-`vel1` contours through day 300.
+- Unaveraged theta contours with black labeled RMS-`vel1` overlays. Only the
+  overlay is smoothed with a centered 3-day running average.
+- Two-row RMS-`vel1`/theta composed plots.
+
+```bash
+scripts/create_time_pressure_contours.sh
+```
+
+Pass a different maximum time in days as the first argument:
+
+```bash
+scripts/create_time_pressure_contours.sh 500
+```
+
+The script reads simulation folders from
+`/home/chengcli/data/2026.JupiterCRM`. Override this with
+`JUPITER_DATA_ROOT=/path/to/cases`. Existing NPZ caches are reused; run the
+individual source scripts with `--refresh-cache` after simulation results
+change.
+
 ### Pressure-Level Spectra
 
 Creates 2D FFT power spectra at the same six pressure levels:
@@ -248,6 +338,10 @@ Use each script's built-in help for the complete current interface:
 
 ```bash
 python scripts/plot_case_theta_profiles.py --help
+python scripts/plot_case_rms_vel1_profiles.py --help
 python scripts/plot_case_vapor_profiles.py --help
 python scripts/plot_theta_stacked_time_series.py --help
+python scripts/plot_rms_vel1_time_pressure_contour.py --help
+python scripts/plot_theta_time_pressure_contour.py --help
+python scripts/plot_rms_vel1_theta_time_pressure_stack.py --help
 ```

@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
 
+from case_selection import resolve_case_dirs
 from plot_horizontal_mean_profiles import (
     DEFAULT_MAX_PRESSURE_BAR,
     DEFAULT_OUTPUT_DIR,
@@ -36,13 +37,7 @@ from initial_profile_cache import read_or_create_initial_profile
 
 
 DEFAULT_ROOT = Path("/home/chengcli/data/2026.JupiterCRM")
-DEFAULT_CASES = (
-    "jup_crm2d_H2O-NH3_F10_nu0.01",
-    "jup_crm2d_H2O-NH3_F10_nu0.1",
-    "jup_crm2d_H2O-NH3_F10_nu1.0",
-    "jup_crm2d_H2O-NH3_F10_nu10.0",
-    "jup_crm2d_H2O-NH3_F10_nu100.0",
-)
+DEFAULT_CASE_REGEX = r"jup_crm2d_H2O-NH3_F10_nu(0\.01|0\.1|1\.0|10\.0|100\.0)"
 DEFAULT_LAST = 20
 DEFAULT_FIELD = "out1"
 LOG_XMIN = 1.0e-8
@@ -78,10 +73,9 @@ def parse_args() -> argparse.Namespace:
         help=f"Directory containing case output folders. Default: {DEFAULT_ROOT}",
     )
     parser.add_argument(
-        "--cases",
-        nargs="+",
-        default=list(DEFAULT_CASES),
-        help="Case directory names to plot.",
+        "--case-regex",
+        default=DEFAULT_CASE_REGEX,
+        help=f"Full-match regex selecting case directory names. Default: {DEFAULT_CASE_REGEX}",
     )
     parser.add_argument(
         "--last",
@@ -116,28 +110,11 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def natural_case_key(path: Path) -> tuple[str, float]:
-    match = re.search(r"_nu(?P<nu>[0-9.]+)$", path.name)
-    if match is None:
-        return path.name, np.inf
-    return path.name[: match.start()], float(match.group("nu"))
-
-
 def case_label(path: Path) -> str:
     match = re.search(r"_nu(?P<nu>[0-9.]+)$", path.name)
     if match is None:
         return path.name
     return f"$\\kappa=${match.group('nu')}"
-
-
-def resolve_case_dirs(root: Path, cases: list[str]) -> list[Path]:
-    case_dirs = [root / case for case in cases]
-    missing = [path for path in case_dirs if not path.is_dir()]
-    if missing:
-        raise FileNotFoundError(
-            "Case directories do not exist: " + ", ".join(str(path) for path in missing)
-        )
-    return case_dirs
 
 
 def safe_name(value: str) -> str:
@@ -332,7 +309,7 @@ def main() -> None:
         raise ValueError("--max-pressure must be positive")
 
     root = args.root.expanduser()
-    case_dirs = resolve_case_dirs(root, args.cases)
+    case_dirs = resolve_case_dirs(root, args.case_regex)
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"Used {len(case_dirs)} cases from {root}")
