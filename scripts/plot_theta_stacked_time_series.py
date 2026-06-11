@@ -113,7 +113,7 @@ def case_label(path: Path) -> str:
     match = re.search(r"_nu(?P<nu>[0-9.]+)$", path.name)
     if match is None:
         return path.name
-    return f"$\\nu=${match.group('nu')}"
+    return f"$\\kappa=${match.group('nu')}"
 
 
 def safe_name(value: str) -> str:

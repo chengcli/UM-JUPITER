@@ -127,7 +127,7 @@ def case_label(path: Path) -> str:
     match = re.search(r"_nu(?P<nu>[0-9.]+)$", path.name)
     if match is None:
         return path.name
-    return f"$\\nu=${match.group('nu')}"
+    return f"$\\kappa=${match.group('nu')}"
 
 
 def resolve_case_dirs(root: Path, cases: list[str]) -> list[Path]:

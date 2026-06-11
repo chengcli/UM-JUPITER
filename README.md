@@ -113,6 +113,31 @@ For F10 experiments, initial profiles are extracted from the corresponding
 F100 case's snapshot `00000`. Compact pressure/profile arrays are saved under
 `diagnostics/initial_profile_cache/` and reused by later runs.
 
+## Multi-Row Profile Grid
+
+`scripts/plot_case_profile_grid.py` consolidates existing profile CSV/cache
+values into one figure with three columns per row:
+
+- H2O horizontal-mean profiles.
+- NH3 horizontal-mean profiles.
+- Potential-temperature horizontal-mean profiles.
+
+Repeat `--row` to add rows. Each row regex must match one experiment family;
+all matching cases are overlaid in that row's panels.
+
+```bash
+python scripts/plot_case_profile_grid.py \
+  --row '^jup_crm3d_H2O-NH3-H2S_F10_nu[0-9.]+$' \
+  --row '^jup_crm3d_H2O-NH3-H2S_F100_nu[0-9.]+$' \
+  --output-name crm3d_F10_F100_profile_grid
+```
+
+The script is read-only with respect to source data: it requires existing
+profile CSVs and initial-profile NPZ caches. If any required cache is missing,
+it exits before plotting and prints the exact `create_all_plots.sh` command
+needed to generate that row's caches. Initial profiles are drawn by default
+from `diagnostics/initial_profile_cache/`; disable them with `--no-initial`.
+
 ## Stacked Time-Series Scripts
 
 ### Potential Temperature at Fixed Pressures
