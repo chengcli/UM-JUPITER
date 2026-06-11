@@ -58,10 +58,11 @@ class VaporSpec:
     xlabel: str
 
 
-VAPOR_SPECS = (
-    VaporSpec("H2O", "H2O_l_", "H2O_l_p_", "H2O_vapor", "H$_2$O mass fraction"),
-    VaporSpec("NH3", "NH3_s_", "NH3_s_p_", "NH3_vapor", "NH$_3$ mass fraction"),
-)
+VAPOR_SPECS = {
+    "H2O": VaporSpec("H2O", "H2O_l_", "H2O_l_p_", "H2O", "H$_2$O mass fraction"),
+    "NH3": VaporSpec("NH3", "NH3_s_", "NH3_s_p_", "NH3", "NH$_3$ mass fraction"),
+    "H2S": VaporSpec("H2S", "NH4SH_s_", "NH4SH_s_p_", "H2S", "H$_2$S mass fraction"),
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -88,6 +89,13 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=DEFAULT_LAST,
         help=f"Number of latest snapshots to average per case. Default: {DEFAULT_LAST}",
+    )
+    parser.add_argument(
+        "--species",
+        nargs="+",
+        choices=tuple(VAPOR_SPECS),
+        default=["H2O", "NH3"],
+        help="Species plots to create. Default: H2O NH3",
     )
     parser.add_argument(
         "--output-dir",
@@ -135,6 +143,13 @@ def resolve_case_dirs(root: Path, cases: list[str]) -> list[Path]:
 
 def safe_name(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]+", "-", value)
+
+
+def experiment_name(case_dirs: list[Path]) -> str:
+    names = [re.sub(r"_nu[0-9.]+$", "", path.name) for path in case_dirs]
+    if len(set(names)) != 1:
+        raise ValueError("All cases must share the same experiment prefix before '_nu'")
+    return names[0]
 
 
 def positive_for_log(values: np.ndarray) -> np.ndarray:
@@ -346,7 +361,8 @@ def main() -> None:
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"Used {len(case_dirs)} cases from {root}")
-    for spec in VAPOR_SPECS:
+    for species in args.species:
+        spec = VAPOR_SPECS[species]
         profiles: dict[str, tuple[np.ndarray, dict[str, tuple[np.ndarray, np.ndarray]]]] = {}
         snapshots_by_case: dict[str, list[str]] = {}
         initial_profile = read_initial_vapor_profile(case_dirs[0], spec)
@@ -361,7 +377,7 @@ def main() -> None:
             snapshots_by_case[label] = snapshots
 
         base_name = (
-            f"jup_crm2d_H2O-NH3_F10_{spec.output_variable}_profiles_last{args.last}"
+            f"{experiment_name(case_dirs)}_{spec.output_variable}_profiles_last{args.last}"
         )
         plot_path = args.output_dir / f"{base_name}.png"
         csv_path = args.output_dir / f"{base_name}.csv"

@@ -118,6 +118,13 @@ def safe_name(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]+", "-", value)
 
 
+def experiment_name(case_dirs: list[Path]) -> str:
+    names = [re.sub(r"_nu[0-9.]+$", "", path.name) for path in case_dirs]
+    if len(set(names)) != 1:
+        raise ValueError("All cases must share the same experiment prefix before '_nu'")
+    return names[0]
+
+
 def read_case_profile(
     case_dir: Path,
     last: int,
@@ -244,7 +251,7 @@ def main() -> None:
         snapshots_by_case[label] = snapshots
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    base_name = f"jup_crm2d_H2O-NH3_F10_theta_profiles_last{args.last}"
+    base_name = f"{experiment_name(case_dirs)}_theta_profiles_last{args.last}"
     plot_path = args.output_dir / f"{base_name}.png"
     csv_path = args.output_dir / f"{base_name}.csv"
 
