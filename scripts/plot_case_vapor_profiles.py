@@ -26,13 +26,13 @@ from plot_horizontal_mean_profiles import (
     DEFAULT_OUTPUT_DIR,
     PRESSURE_MARKERS_BAR,
     PRESSURE_REFERENCE_PA,
-    find_snapshot_file,
     read_pressure_profile,
     read_variable_stats,
     resolve_field_files,
     select_last_files,
     validate_variables,
 )
+from initial_profile_cache import read_or_create_initial_profile
 
 
 DEFAULT_ROOT = Path("/home/chengcli/data/2026.JupiterCRM")
@@ -45,7 +45,6 @@ DEFAULT_CASES = (
 )
 DEFAULT_LAST = 20
 DEFAULT_FIELD = "out1"
-INITIAL_SNAPSHOT = "00000"
 LOG_XMIN = 1.0e-8
 
 
@@ -181,30 +180,6 @@ def read_case_profile(
 
     pressure_bar = pressure_pa / PRESSURE_REFERENCE_PA
     return pressure_bar, profile_stats, [item.snapshot for item in field_files]
-
-
-def read_initial_vapor_profile(
-    case_dir: Path,
-    spec: VaporSpec,
-) -> tuple[np.ndarray, np.ndarray]:
-    field_files = resolve_field_files(case_dir, DEFAULT_FIELD)
-    initial_file = find_snapshot_file(field_files, INITIAL_SNAPSHOT)
-    validate_variables(initial_file.path, [spec.variable])
-
-    pressure_x1, pressure_pa = read_pressure_profile([initial_file])
-    x1, vapor_mean, _ = read_variable_stats(
-        [initial_file],
-        spec.variable,
-        Path("jupiter_crm.yaml"),
-    )
-    if not np.allclose(pressure_x1, x1):
-        raise ValueError(
-            f"x1 coordinate mismatch between initial {spec.variable} and pressure "
-            f"in {case_dir}"
-        )
-
-    pressure_bar = pressure_pa / PRESSURE_REFERENCE_PA
-    return pressure_bar, vapor_mean
 
 
 def plot_profiles(
@@ -365,7 +340,12 @@ def main() -> None:
         spec = VAPOR_SPECS[species]
         profiles: dict[str, tuple[np.ndarray, dict[str, tuple[np.ndarray, np.ndarray]]]] = {}
         snapshots_by_case: dict[str, list[str]] = {}
-        initial_profile = read_initial_vapor_profile(case_dirs[0], spec)
+        initial_pressure, initial_vapor, initial_cache = read_or_create_initial_profile(
+            case_dirs[0],
+            spec.variable,
+            args.output_dir,
+        )
+        initial_profile = (initial_pressure, initial_vapor)
         for case_dir in case_dirs:
             label = case_label(case_dir)
             pressure_bar, profile_stats, snapshots = read_case_profile(
@@ -393,6 +373,7 @@ def main() -> None:
         write_csv(csv_path, profiles, spec)
 
         print(f"{spec.variable}:")
+        print(f"  Initial profile cache: {initial_cache}")
         for label, snapshots in snapshots_by_case.items():
             print(
                 f"  {label}: snapshots {snapshots[0]}..{snapshots[-1]} "

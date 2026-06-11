@@ -19,6 +19,7 @@ mpl.rc_file(Path(__file__).resolve().parents[1] / "matplotlibrc")
 import matplotlib.pyplot as plt
 import numpy as np
 
+from initial_profile_cache import read_or_create_initial_profile
 from plot_horizontal_mean_profiles import (
     DEFAULT_MAX_PRESSURE_BAR,
     DEFAULT_OUTPUT_DIR,
@@ -148,6 +149,7 @@ def read_case_profile(
 def plot_profiles(
     path: Path,
     profiles: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray]],
+    initial_profile: tuple[np.ndarray, np.ndarray],
     max_pressure_bar: float,
     draw_std: bool,
 ) -> None:
@@ -170,6 +172,9 @@ def plot_profiles(
                 linewidth=0.0,
             )
         ax.plot(theta_mean, pressure_bar, color=color, lw=2.0, label=label)
+
+    initial_pressure_bar, initial_theta = initial_profile
+    ax.plot(initial_theta, initial_pressure_bar, color="black", lw=2.0)
 
     ax.set_yscale("log")
     ax.invert_yaxis()
@@ -251,6 +256,11 @@ def main() -> None:
         snapshots_by_case[label] = snapshots
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
+    initial_pressure, initial_theta, initial_cache = read_or_create_initial_profile(
+        case_dirs[0],
+        DEFAULT_VARIABLE,
+        args.output_dir,
+    )
     base_name = f"{experiment_name(case_dirs)}_theta_profiles_last{args.last}"
     plot_path = args.output_dir / f"{base_name}.png"
     csv_path = args.output_dir / f"{base_name}.csv"
@@ -258,8 +268,15 @@ def main() -> None:
     print(f"Used {len(case_dirs)} cases from {root}")
     for label, snapshots in snapshots_by_case.items():
         print(f"{label}: snapshots {snapshots[0]}..{snapshots[-1]} ({len(snapshots)})")
-    plot_profiles(plot_path, profiles, args.max_pressure, not args.no_std)
+    plot_profiles(
+        plot_path,
+        profiles,
+        (initial_pressure, initial_theta),
+        args.max_pressure,
+        not args.no_std,
+    )
     write_csv(csv_path, profiles)
+    print(f"Initial profile cache: {initial_cache}")
     print(f"Wrote {plot_path}")
     print(f"Wrote {csv_path}")
 
