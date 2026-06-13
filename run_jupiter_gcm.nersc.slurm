@@ -2,10 +2,10 @@
 #SBATCH --job-name=jup
 #SBATCH --account=m1411_g
 #SBATCH --constraint=gpu
-#SBATCH --qos=shared
-#SBATCH --nodes=1
+#SBATCH --qos=regular
+#SBATCH --nodes=2
 #SBATCH --ntasks-per-node=1
-#SBATCH --gpus-per-node=2
+#SBATCH --gpus-per-node=3
 #SBATCH --time=23:00:00
 #SBATCH --requeue
 #SBATCH --output=%x-%j.out
@@ -21,7 +21,7 @@ source ${HOME}/pyenv/bin/activate
 export MASTER_ADDR="$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)"
 export MASTER_PORT="${PORT}"
 export NNODES="${SLURM_JOB_NUM_NODES}"
-export GPUS_PER_NODE=2
+export GPUS_PER_NODE=3
 export WORLD_SIZE=$((NNODES * GPUS_PER_NODE))
 
 echo "MASTER_ADDR=${MASTER_ADDR}"
@@ -37,8 +37,8 @@ echo "NODELIST=${SLURM_JOB_NODELIST}"
 # export GLOO_SOCKET_IFNAME=ib0
 
 # ---- Launch one torchrun per node ----
-EXP_ROOT=${HOME}/scratch/2026.JupiterCRM/
-EXP_NAME=gcm_H2O-NH3_F100
+EXP_ROOT=${HOME}/scratch/2026.JupiterGCM
+EXP_NAME=gcm_H2O-NH3-H2S_F100
 EXP_INP=${SLURM_JOB_NAME}_${EXP_NAME}.yaml
 EXP_DIR=${SLURM_JOB_NAME}_${EXP_NAME}
 
@@ -94,5 +94,4 @@ srun torchrun \
   --master_addr="${MASTER_ADDR}" \
   --master_port="${MASTER_PORT}" \
   run_jupiter_moist.py --config ${EXP_INP} \
-                       --restart ${SLURM_JOB_NAME}_${EXP_NAME}.final.restart \
                        --output-dir ${EXP_ROOT}/${EXP_DIR}

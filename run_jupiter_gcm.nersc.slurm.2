@@ -38,7 +38,7 @@ echo "NODELIST=${SLURM_JOB_NODELIST}"
 
 # ---- Launch one torchrun per node ----
 EXP_ROOT=${HOME}/scratch/2026.JupiterCRM/
-EXP_NAME=gcm_H2O-NH3-H2S_F1000
+EXP_NAME=gcm_H2O-NH3_F100
 EXP_INP=${SLURM_JOB_NAME}_${EXP_NAME}.yaml
 EXP_DIR=${SLURM_JOB_NAME}_${EXP_NAME}
 
@@ -94,5 +94,5 @@ srun torchrun \
   --master_addr="${MASTER_ADDR}" \
   --master_port="${MASTER_PORT}" \
   run_jupiter_moist.py --config ${EXP_INP} \
+                       --restart ${SLURM_JOB_NAME}_${EXP_NAME}.final.restart \
                        --output-dir ${EXP_ROOT}/${EXP_DIR}
-                       #--restart ${SLURM_JOB_NAME}_${EXP_NAME}.final.restart \

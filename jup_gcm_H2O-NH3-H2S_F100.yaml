@@ -72,7 +72,7 @@ geometry:
 distribute:
   backend: nccl
   layout: cubed-sphere
-  blocks_per_process: 2
+  blocks_per_process: 1
   nb2: 1
   nb3: 1
   verbose: false
@@ -112,7 +112,7 @@ integration:
   cfl: 0.45
   implicit-scheme: 9
   nlim: -1
-  tlim: 500.e5
+  tlim: 1000.e5
   ncycle_out: 50
 
 outputs:
