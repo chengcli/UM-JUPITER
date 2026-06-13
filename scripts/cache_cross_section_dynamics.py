@@ -38,23 +38,39 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--case-regex", default=DEFAULT_CASE_REGEX)
     parser.add_argument("--last", type=int, default=DEFAULT_LAST)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
+    parser.add_argument(
+        "--path-species",
+        choices=("H2O", "NH3"),
+        default="H2O",
+        help="Species whose path extrema define the cross-section. Default: H2O.",
+    )
     parser.add_argument("--section-cache", type=Path, default=None)
+    parser.add_argument(
+        "--output-cache",
+        type=Path,
+        default=None,
+        help="Dynamics cache path. Default: selected species-section path under output-dir.",
+    )
     return parser.parse_args()
 
 
-def section_cache_path(output_dir: Path, case_name: str, last: int) -> Path:
+def section_cache_path(
+    output_dir: Path, case_name: str, last: int, path_species: str = "H2O"
+) -> Path:
     return (
         output_dir
-        / "h2o_min_max_path_cross_section_cache"
-        / f"{case_name}_H2O_min_max_path_cross_section_last{last}.npz"
+        / f"{path_species.lower()}_min_max_path_cross_section_cache"
+        / f"{case_name}_{path_species}_min_max_path_cross_section_last{last}.npz"
     )
 
 
-def dynamics_cache_path(output_dir: Path, case_name: str, last: int) -> Path:
+def dynamics_cache_path(
+    output_dir: Path, case_name: str, last: int, path_species: str = "H2O"
+) -> Path:
     return (
         output_dir
         / "cross_section_dynamics_cache"
-        / f"{case_name}_H2O_min_max_path_dynamics_last{last}.npz"
+        / f"{case_name}_{path_species}_min_max_path_dynamics_last{last}.npz"
     )
 
 
@@ -83,11 +99,18 @@ def read_sampled_fields(
     return x1_m, fields
 
 
-def build_cache(case_dir: Path, section_path: Path, output_path: Path) -> None:
+def build_cache(
+    case_dir: Path, section_path: Path, output_path: Path, path_species: str = "H2O"
+) -> None:
     if not section_path.exists():
+        script = (
+            "plot_h2o_on_h2o_min_max_path_cross_section.py"
+            if path_species == "H2O"
+            else "plot_nh3_on_nh3_min_max_path_cross_section.py"
+        )
         raise FileNotFoundError(
             f"Missing section cache: {section_path}\nGenerate it with:\n"
-            f"  python scripts/plot_h2o_min_max_path_cross_section.py "
+            f"  python scripts/{script} "
             f"--case-regex '{case_dir.name}' --refresh-cache"
         )
     with np.load(section_path, allow_pickle=False) as section:
@@ -185,10 +208,12 @@ def main() -> None:
         raise ValueError("--case-regex must match exactly one case")
     case_dir = cases[0]
     section_path = args.section_cache or section_cache_path(
-        args.output_dir, case_dir.name, args.last
+        args.output_dir, case_dir.name, args.last, args.path_species
     )
-    output_path = dynamics_cache_path(args.output_dir, case_dir.name, args.last)
-    build_cache(case_dir, section_path, output_path)
+    output_path = args.output_cache or dynamics_cache_path(
+        args.output_dir, case_dir.name, args.last, args.path_species
+    )
+    build_cache(case_dir, section_path, output_path, args.path_species)
     print(f"Wrote {output_path}")
 
 

@@ -33,12 +33,13 @@ from periodic_cross_section import build_periodic_section, sample_periodic_bilin
 DEFAULT_ROOT = Path("/home/chengcli/data/2026.JupiterCRM")
 DEFAULT_CASE_REGEX = r"jup_crm3d_H2O-NH3-H2S_F10_nu0\.01"
 DEFAULT_LAST = 20
-CACHE_VERSION = 4
+CACHE_VERSION = 5
 PATH_VARIABLE = "path_H2O"
 VARIABLES = {
     "vapor": "H2O",
     "nh3_vapor": "NH3",
     "cloud": "H2O_l_",
+    "nh3_cloud": "NH3_s_",
     "pressure": "press",
 }
 PRESSURE_REFERENCE_PA = 1.0e5
@@ -100,7 +101,10 @@ def cache_path(output_dir: Path, case_name: str, last: int) -> Path:
 
 
 def output_path(output_dir: Path, case_name: str, last: int) -> Path:
-    return output_dir / f"{case_name}_H2O_min_max_path_cross_section_last{last}.png"
+    return (
+        output_dir
+        / f"{case_name}_H2O_on_H2O_min_max_path_cross_section_last{last}.png"
+    )
 
 
 def symmetric_robust_levels(values: np.ndarray, mask: np.ndarray, count: int = 7) -> np.ndarray:
@@ -273,6 +277,7 @@ def build_cache(case_dir: Path, path: Path, last: int) -> None:
         vapor_cross_section=sums["vapor"] / len(selected_out1),
         nh3_vapor_cross_section=sums["nh3_vapor"] / len(selected_out1),
         cloud_cross_section=sums["cloud"] / len(selected_out1),
+        nh3_cloud_cross_section=sums["nh3_cloud"] / len(selected_out1),
         pressure_cross_section_bar=(
             sums["pressure"] / len(selected_out1) / PRESSURE_REFERENCE_PA
         ),

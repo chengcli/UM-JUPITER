@@ -13,7 +13,7 @@ output_dir="${3:-diagnostics}"
 cd "$repo_root"
 
 #echo "Rebuilding H2O periodic cross-section cache..."
-#python scripts/plot_h2o_min_max_path_cross_section.py \
+#python scripts/plot_h2o_on_h2o_min_max_path_cross_section.py \
 #    --root "$data_root" \
 #    --case-regex "$case_regex" \
 #    --last "$last" \
@@ -29,10 +29,17 @@ cd "$repo_root"
 #    --output-dir "$output_dir"
 
 echo "Rendering H2O periodic cross-section..."
-python scripts/plot_h2o_min_max_path_cross_section.py \
+python scripts/plot_h2o_on_h2o_min_max_path_cross_section.py \
     --root "$data_root" \
     --case-regex "$case_regex" \
     --last "$last" \
     --output-dir "$output_dir"
 
-echo "Finished H2O periodic cross-section."
+echo "Rendering NH3 on the H2O-defined periodic cross-section..."
+python scripts/plot_nh3_on_h2o_min_max_path_cross_section.py \
+    --root "$data_root" \
+    --case-regex "$case_regex" \
+    --last "$last" \
+    --output-dir "$output_dir"
+
+echo "Finished H2O-defined periodic cross-section plots."

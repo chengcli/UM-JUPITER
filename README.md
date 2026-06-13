@@ -188,18 +188,18 @@ scripts/create_species_path_contours.sh 20 1.0 500
 
 ### Periodic H2O Minimum-to-Maximum Cross-Section
 
-`scripts/create_h2o_min_max_path_cross_section.sh` rebuilds the section and
+`scripts/create_h2o_min_max_path_cross_sections.sh` rebuilds the section and
 dynamics caches, then renders the final cross-section figure:
 
 ```bash
-scripts/create_h2o_min_max_path_cross_section.sh
+scripts/create_h2o_min_max_path_cross_sections.sh
 ```
 
 Its optional positional arguments are case regex, number of final snapshots,
 and output directory:
 
 ```bash
-scripts/create_h2o_min_max_path_cross_section.sh \
+scripts/create_h2o_min_max_path_cross_sections.sh \
   'jup_crm3d_H2O-NH3-H2S_F10_nu0\.01' 20 diagnostics
 ```
 
@@ -235,7 +235,8 @@ projected velocity and mass-flux cache with:
 ```bash
 python scripts/cache_cross_section_dynamics.py \
   --case-regex 'jup_crm3d_H2O-NH3-H2S_F10_nu0\.01' \
-  --last 20
+  --last 20 \
+  --path-species H2O
 ```
 
 The cross-section plot shows perpendicular velocity by default. Positive
@@ -246,9 +247,43 @@ Use `--no-show-perp-velocity` to disable them or `--show-perp-velocity` to
 explicitly enable them. Streamfunction is cached but hidden by default;
 restore its dashed overlay with `--show-streamfunction`.
 
-See [docs/h2o_min_max_cross_section.md](docs/h2o_min_max_cross_section.md) for
+Plot NH3 vapor fractional deviation and NH3 cloud on the same H2O-defined
+periodic section with:
+
+```bash
+python scripts/plot_nh3_on_h2o_min_max_path_cross_section.py \
+  --case-regex 'jup_crm3d_H2O-NH3-H2S_F10_nu0\.01' \
+  --last 20
+```
+
+The NH3 script reuses the section and dynamics caches. Rebuild the section
+cache first after simulation changes so it contains `nh3_vapor_cross_section`
+and `nh3_cloud_cross_section`.
+
+See [docs/species_min_max_cross_sections.md](docs/species_min_max_cross_sections.md) for
 the complete generation workflow and a focused guide to tuning contour
 levels, colormaps, pressure limits, and colorbar dimensions.
+
+### NH3-Defined Periodic Cross-Sections
+
+The mirrored NH3 workflow finds the minimum and maximum time-mean `path_NH3`
+locations, builds the periodic section through them, projects velocity relative
+to that section, and creates:
+
+- NH3 vapor fractional deviation with NH3 cloud overlay.
+- H2O vapor fractional deviation on the same NH3-defined section.
+
+Generate the section cache, dynamics cache, and both figures with:
+
+```bash
+scripts/create_nh3_min_max_path_cross_sections.sh \
+  'jup_crm3d_H2O-NH3-H2S_F10_nu0\.01' 20 diagnostics
+```
+
+The reusable cache and plotting implementation is in
+`scripts/species_path_cross_section.py`. See
+[docs/species_min_max_cross_sections.md](docs/species_min_max_cross_sections.md) for
+individual commands and output paths.
 
 ## Multi-Row Profile Grid
 
@@ -461,7 +496,10 @@ python scripts/plot_case_rms_vel1_profiles.py --help
 python scripts/plot_case_vapor_profiles.py --help
 python scripts/plot_species_path_contours.py --help
 python scripts/cache_vel1_column_exceedance.py --help
-python scripts/plot_h2o_min_max_path_cross_section.py --help
+python scripts/plot_h2o_on_h2o_min_max_path_cross_section.py --help
+python scripts/plot_nh3_on_h2o_min_max_path_cross_section.py --help
+python scripts/plot_nh3_on_nh3_min_max_path_cross_section.py --help
+python scripts/plot_h2o_on_nh3_min_max_path_cross_section.py --help
 python scripts/cache_cross_section_dynamics.py --help
 python scripts/plot_theta_stacked_time_series.py --help
 python scripts/plot_rms_vel1_time_pressure_contour.py --help

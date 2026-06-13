@@ -42,7 +42,7 @@ for species in NH3 H2S; do
 done
 
 echo "Creating periodic H2O minimum-to-maximum cross-section..."
-python scripts/plot_h2o_min_max_path_cross_section.py \
+python scripts/plot_h2o_on_h2o_min_max_path_cross_section.py \
     --root "$data_root" \
     --case-regex "$case_regex" \
     --last "$last" \
@@ -56,7 +56,7 @@ python scripts/cache_cross_section_dynamics.py \
     --last "$last"
 
 echo "Creating periodic H2O cross-section with dynamics overlays..."
-python scripts/plot_h2o_min_max_path_cross_section.py \
+python scripts/plot_h2o_on_h2o_min_max_path_cross_section.py \
     --root "$data_root" \
     --case-regex "$case_regex" \
     --last "$last"
