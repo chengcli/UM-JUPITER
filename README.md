@@ -285,6 +285,20 @@ The reusable cache and plotting implementation is in
 [docs/species_min_max_cross_sections.md](docs/species_min_max_cross_sections.md) for
 individual commands and output paths.
 
+Plot local vertical profiles at H2O or NH3 path extrema with:
+
+```bash
+python scripts/plot_path_min_max_profiles.py --path-species H2O
+python scripts/plot_path_min_max_profiles.py --path-species NH3
+```
+
+The single-row figure contains H2O vapor/cloud/precipitation, NH3
+vapor/cloud/precipitation, and potential temperature. The H2O path minimum
+uses the magenta limit of `PiYG`; the maximum uses the green limit. The script
+reuses H2O section-cache extrema and snapshots, then stores required local
+profiles in `diagnostics/path_extrema_profile_cache/`. Cached snapshot-00000
+initial profiles are drawn as black lines.
+
 ## Multi-Row Profile Grid
 
 `scripts/plot_case_profile_grid.py` consolidates existing profile CSV/cache
@@ -500,6 +514,7 @@ python scripts/plot_h2o_on_h2o_min_max_path_cross_section.py --help
 python scripts/plot_nh3_on_h2o_min_max_path_cross_section.py --help
 python scripts/plot_nh3_on_nh3_min_max_path_cross_section.py --help
 python scripts/plot_h2o_on_nh3_min_max_path_cross_section.py --help
+python scripts/plot_path_min_max_profiles.py --help
 python scripts/cache_cross_section_dynamics.py --help
 python scripts/plot_theta_stacked_time_series.py --help
 python scripts/plot_rms_vel1_time_pressure_contour.py --help

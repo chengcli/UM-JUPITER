@@ -254,3 +254,42 @@ python scripts/plot_h2o_on_nh3_min_max_path_cross_section.py \
 ```
 
 The case regex must match exactly one case directory.
+
+## Path-Extrema Profile Figures
+
+Create one three-panel profile figure at H2O or NH3 path extrema:
+
+```bash
+python scripts/plot_path_min_max_profiles.py \
+  --case-regex 'jup_crm3d_H2O-NH3-H2S_F10_nu0\.01' \
+  --last 20 \
+  --path-species H2O
+
+python scripts/plot_path_min_max_profiles.py --path-species NH3
+```
+
+Panels show:
+
+1. H2O vapor, cloud, and precipitation.
+2. NH3 vapor, cloud, and precipitation.
+3. Potential temperature.
+
+Species use the existing profile styles: solid vapor, dashed cloud, and
+dotted precipitation. Species axes are logarithmic. Path-minimum profiles use
+`PiYG(0.0)`, the magenta limit; path-maximum profiles use `PiYG(1.0)`, the
+green limit. Black solid lines show the cached snapshot-00000 initial H2O,
+NH3, and potential-temperature profiles.
+
+The script reads min/max locations and selected snapshots from the matching
+H2O- or NH3-defined section cache. It caches local pressure, species, and theta
+profiles under:
+
+```text
+diagnostics/path_extrema_profile_cache/
+```
+
+Rebuild that compact cache after simulation data changes:
+
+```bash
+python scripts/plot_path_min_max_profiles.py --path-species NH3 --refresh-cache
+```
