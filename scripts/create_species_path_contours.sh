@@ -41,4 +41,24 @@ for species in NH3 H2S; do
         --last "$last"
 done
 
+echo "Creating periodic H2O minimum-to-maximum cross-section..."
+python scripts/plot_h2o_min_max_path_cross_section.py \
+    --root "$data_root" \
+    --case-regex "$case_regex" \
+    --last "$last" \
+    --refresh-cache \
+    --cache-only
+
+echo "Caching projected velocity and mass streamfunction..."
+python scripts/cache_cross_section_dynamics.py \
+    --root "$data_root" \
+    --case-regex "$case_regex" \
+    --last "$last"
+
+echo "Creating periodic H2O cross-section with dynamics overlays..."
+python scripts/plot_h2o_min_max_path_cross_section.py \
+    --root "$data_root" \
+    --case-regex "$case_regex" \
+    --last "$last"
+
 echo "Finished species path contours for ${case_name}."

@@ -186,6 +186,70 @@ maximum marked locations:
 scripts/create_species_path_contours.sh 20 1.0 500
 ```
 
+### Periodic H2O Minimum-to-Maximum Cross-Section
+
+`scripts/create_h2o_min_max_path_cross_section.sh` rebuilds the section and
+dynamics caches, then renders the final cross-section figure:
+
+```bash
+scripts/create_h2o_min_max_path_cross_section.sh
+```
+
+Its optional positional arguments are case regex, number of final snapshots,
+and output directory:
+
+```bash
+scripts/create_h2o_min_max_path_cross_section.sh \
+  'jup_crm3d_H2O-NH3-H2S_F10_nu0\.01' 20 diagnostics
+```
+
+The horizontal section uses the shortest periodic direction from minimum to
+maximum, then extends from the minimum in both directions until each side
+first crosses either horizontal domain boundary. It is sampled with periodic
+bilinear interpolation at approximately the native horizontal grid spacing.
+The vapor panel plots H2O fractional deviation from the section-horizontal
+mean at every vertical level, `(H2O - mean(H2O)) / mean(H2O)`. It uses 11
+linear `PiYG` levels from `-0.5` through `0.5`. NH3 vapor is retained in the
+section cache but is not plotted. Five opaque
+filled H2O cloud levels are overlaid using `Blues`, logarithmically spaced
+from `1e-5` through `1e-3`, with a thin black contour at `1e-5`. The vertical
+axis uses the sampled time-mean pressure on an inverted logarithmic scale and
+displays pressures through 50 bar. Compact section coordinates, pressure,
+extrema metadata, and vapor/cloud arrays are cached under
+`diagnostics/h2o_min_max_path_cross_section_cache/`.
+Projected velocities and streamfunction are cached under
+`diagnostics/cross_section_dynamics_cache/`. The final PNG is written directly
+under `diagnostics/`. Set `JUPITER_DATA_ROOT` to use a data root other than
+`/home/chengcli/data/2026.JupiterCRM`.
+
+The reusable helpers in `scripts/periodic_cross_section.py` build a
+first-boundary periodic section between any two horizontal points and
+bilinearly sample arbitrary arrays whose final dimensions are `(x3, x2)`.
+`scripts/custom_colormaps.py` provides `diverging_with_white_plateau()`, which
+creates a custom colormap from an existing diverging colormap and maps values
+within a user-selected half-width around the center to pure white.
+`scripts/cross_section_dynamics.py` provides reusable horizontal velocity
+projection and least-squares mass-streamfunction calculations. Generate the
+projected velocity and mass-flux cache with:
+
+```bash
+python scripts/cache_cross_section_dynamics.py \
+  --case-regex 'jup_crm3d_H2O-NH3-H2S_F10_nu0\.01' \
+  --last 20
+```
+
+The cross-section plot shows perpendicular velocity by default. Positive
+values at `[4, 8, 12, 16, 20] m s^-1` use labeled black solid contours;
+negative values at `[-4, -8, -12, -16, -20] m s^-1` use labeled black dashed
+contours.
+Use `--no-show-perp-velocity` to disable them or `--show-perp-velocity` to
+explicitly enable them. Streamfunction is cached but hidden by default;
+restore its dashed overlay with `--show-streamfunction`.
+
+See [docs/h2o_min_max_cross_section.md](docs/h2o_min_max_cross_section.md) for
+the complete generation workflow and a focused guide to tuning contour
+levels, colormaps, pressure limits, and colorbar dimensions.
+
 ## Multi-Row Profile Grid
 
 `scripts/plot_case_profile_grid.py` consolidates existing profile CSV/cache
@@ -397,6 +461,8 @@ python scripts/plot_case_rms_vel1_profiles.py --help
 python scripts/plot_case_vapor_profiles.py --help
 python scripts/plot_species_path_contours.py --help
 python scripts/cache_vel1_column_exceedance.py --help
+python scripts/plot_h2o_min_max_path_cross_section.py --help
+python scripts/cache_cross_section_dynamics.py --help
 python scripts/plot_theta_stacked_time_series.py --help
 python scripts/plot_rms_vel1_time_pressure_contour.py --help
 python scripts/plot_theta_time_pressure_contour.py --help
