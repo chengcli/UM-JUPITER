@@ -13,10 +13,14 @@ from periodic_cross_section import build_periodic_section, sample_periodic_bilin
 from plot_h2o_on_h2o_min_max_path_cross_section import (
     MAX_PRESSURE_BAR,
     NEGATIVE_PERP_VELOCITY_LEVELS,
+    NEGATIVE_VORTICITY_LEVELS,
     POSITIVE_PERP_VELOCITY_LEVELS,
+    POSITIVE_VORTICITY_LEVELS,
     VAPOR_FRACTIONAL_DEVIATION_LIMIT,
     VAPOR_FRACTIONAL_WHITE_HALF_WIDTH,
+    VORTICITY_SCALE,
     read_dynamics_cache,
+    read_vorticity_cache,
     symmetric_robust_levels,
 )
 from plot_horizontal_mean_profiles import (
@@ -187,10 +191,12 @@ def fractional_deviation(values: np.ndarray) -> np.ndarray:
 def plot_cache(
     section_path: Path,
     dynamics_path: Path,
+    vorticity_path: Path,
     figure_path: Path,
     plot_species: str,
     show_cloud: bool,
     show_perp_velocity: bool,
+    show_vorticity: bool,
     show_streamfunction: bool,
 ) -> None:
     prefix = plot_species.lower()
@@ -198,15 +204,27 @@ def plot_cache(
         case_name = str(cache["case_name"])
         snapshots = cache["snapshots"].astype(str)
         distance_km = cache["section_distance_km"]
+        section_x2_km = cache["section_x2_wrapped_km"]
+        section_x3_km = cache["section_x3_wrapped_km"]
         pressure_bar = cache["pressure_cross_section_bar"]
         vapor = fractional_deviation(cache[f"{prefix}_vapor_cross_section"])
         cloud = cache[f"{prefix}_cloud_cross_section"]
 
     perpendicular_velocity = None
     streamfunction = None
+    vorticity = None
     if show_perp_velocity or show_streamfunction:
         perpendicular_velocity, streamfunction = read_dynamics_cache(
             dynamics_path, case_name, snapshots, distance_km, vapor.shape
+        )
+    if show_vorticity:
+        vorticity = read_vorticity_cache(
+            vorticity_path,
+            case_name,
+            snapshots,
+            section_x2_km,
+            section_x3_km,
+            vapor.shape,
         )
 
     fig = plt.figure(figsize=(10.0, 4.5), constrained_layout=True)
@@ -260,6 +278,29 @@ def plot_cache(
         )
         ax.clabel(negative, levels=NEGATIVE_PERP_VELOCITY_LEVELS, fmt="%.0f", fontsize=7)
         ax.clabel(positive, levels=POSITIVE_PERP_VELOCITY_LEVELS, fmt="%.0f", fontsize=7)
+    if show_vorticity:
+        assert vorticity is not None
+        scaled_vorticity = vorticity * VORTICITY_SCALE
+        negative = ax.contour(
+            distance_grid,
+            pressure_bar,
+            scaled_vorticity,
+            levels=NEGATIVE_VORTICITY_LEVELS,
+            colors="black",
+            linestyles="dashed",
+            linewidths=1.0,
+        )
+        positive = ax.contour(
+            distance_grid,
+            pressure_bar,
+            scaled_vorticity,
+            levels=POSITIVE_VORTICITY_LEVELS,
+            colors="black",
+            linestyles="solid",
+            linewidths=1.0,
+        )
+        ax.clabel(negative, levels=NEGATIVE_VORTICITY_LEVELS, fmt="%.0f", fontsize=7)
+        ax.clabel(positive, levels=POSITIVE_VORTICITY_LEVELS, fmt="%.0f", fontsize=7)
     if show_streamfunction:
         assert streamfunction is not None
         anomaly = streamfunction - np.nanmean(streamfunction[displayed])

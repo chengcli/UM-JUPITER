@@ -19,6 +19,7 @@ import numpy as np
 import xarray as xr
 
 from case_selection import resolve_case_dirs
+from cache_horizontal_vorticity import cache_path as horizontal_vorticity_cache_path
 from cache_cross_section_dynamics import dynamics_cache_path
 from custom_colormaps import diverging_with_white_plateau
 from plot_horizontal_mean_profiles import (
@@ -48,6 +49,9 @@ VAPOR_FRACTIONAL_DEVIATION_LIMIT = 0.5
 VAPOR_FRACTIONAL_WHITE_HALF_WIDTH = 0.05
 NEGATIVE_PERP_VELOCITY_LEVELS = np.array([-20.0, -16.0, -12.0, -8.0, -4.0])
 POSITIVE_PERP_VELOCITY_LEVELS = np.array([4.0, 8.0, 12.0, 16.0, 20.0])
+VORTICITY_SCALE = 1.0e5
+NEGATIVE_VORTICITY_LEVELS = np.array([-8.0, -6.0, -4.0, -2.0])
+POSITIVE_VORTICITY_LEVELS = np.array([2.0, 4.0, 6.0, 8.0])
 
 
 def parse_args() -> argparse.Namespace:
@@ -69,6 +73,12 @@ def parse_args() -> argparse.Namespace:
         help="Projected velocity and streamfunction cache. Default: inferred from output directory.",
     )
     parser.add_argument(
+        "--vorticity-cache",
+        type=Path,
+        default=None,
+        help="Horizontal vorticity cache. Default: inferred from output directory.",
+    )
+    parser.add_argument(
         "--refresh-cache",
         action="store_true",
         help="Re-read NetCDF snapshots and overwrite an existing cache.",
@@ -83,6 +93,12 @@ def parse_args() -> argparse.Namespace:
         action=argparse.BooleanOptionalAction,
         default=True,
         help="Overlay perpendicular-velocity contours. Default: enabled.",
+    )
+    parser.add_argument(
+        "--show-vorticity",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Overlay horizontal vorticity contours scaled by 1e5. Default: enabled.",
     )
     parser.add_argument(
         "--show-streamfunction",
@@ -103,7 +119,7 @@ def cache_path(output_dir: Path, case_name: str, last: int) -> Path:
 def output_path(output_dir: Path, case_name: str, last: int) -> Path:
     return (
         output_dir
-        / f"{case_name}_H2O_on_H2O_min_max_path_cross_section_last{last}.png"
+        / f"{case_name}_H2O_on_H2O_min_max_path_cross_section_wind_vorticity_last{last}.png"
     )
 
 
@@ -146,6 +162,36 @@ def read_dynamics_cache(
     if perpendicular.shape != expected_shape or streamfunction.shape != expected_shape:
         raise ValueError(f"Dynamics cache field shape does not match section cache: {path}")
     return perpendicular, streamfunction
+
+
+def read_vorticity_cache(
+    path: Path,
+    case_name: str,
+    snapshots: np.ndarray,
+    section_x2_km: np.ndarray,
+    section_x3_km: np.ndarray,
+    expected_shape: tuple[int, int],
+) -> np.ndarray:
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Missing horizontal vorticity cache: {path}\nGenerate it with:\n"
+            f"  python scripts/cache_horizontal_vorticity.py "
+            f"--case-regex '{case_name}' --last {len(snapshots)}"
+        )
+    with np.load(path, allow_pickle=False) as cache:
+        if int(cache["cache_version"]) != 1:
+            raise ValueError(f"Unsupported vorticity cache version in {path}")
+        if str(cache["case_name"]) != case_name:
+            raise ValueError(f"Vorticity cache case mismatch in {path}")
+        if not np.array_equal(cache["snapshots"].astype(str), snapshots.astype(str)):
+            raise ValueError(f"Vorticity cache snapshots do not match section cache: {path}")
+        x2_km = cache["x2_km"]
+        x3_km = cache["x3_km"]
+        vorticity = cache["vorticity_mean_s_inv"].astype(np.float64)
+    sampled = sample_periodic_bilinear(vorticity, x2_km, x3_km, section_x2_km, section_x3_km)
+    if sampled.shape != expected_shape:
+        raise ValueError(f"Vorticity section shape does not match section cache: {path}")
+    return sampled
 
 
 def read_path(path: Path) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -287,15 +333,19 @@ def build_cache(case_dir: Path, path: Path, last: int) -> None:
 def plot_cache(
     path: Path,
     dynamics_path: Path,
+    vorticity_path: Path,
     figure_path: Path,
     levels_count: int,
     show_perp_velocity: bool,
+    show_vorticity: bool,
     show_streamfunction: bool,
 ) -> None:
     with np.load(path, allow_pickle=False) as cache:
         case_name = str(cache["case_name"])
         snapshots = cache["snapshots"].astype(str)
         distance_km = cache["section_distance_km"]
+        section_x2_km = cache["section_x2_wrapped_km"]
+        section_x3_km = cache["section_x3_wrapped_km"]
         pressure_bar = cache["pressure_cross_section_bar"]
         min_x2_km = float(cache["min_x2_km"])
         min_x3_km = float(cache["min_x3_km"])
@@ -312,12 +362,22 @@ def plot_cache(
         }
     perpendicular_velocity = None
     streamfunction = None
+    vorticity = None
     if show_perp_velocity or show_streamfunction:
         perpendicular_velocity, streamfunction = read_dynamics_cache(
             dynamics_path,
             case_name,
             snapshots,
             distance_km,
+            fields["vapor"].shape,
+        )
+    if show_vorticity:
+        vorticity = read_vorticity_cache(
+            vorticity_path,
+            case_name,
+            snapshots,
+            section_x2_km,
+            section_x3_km,
             fields["vapor"].shape,
         )
     vapor_horizontal_mean = np.nanmean(fields["vapor"], axis=1, keepdims=True)
@@ -411,6 +471,41 @@ def plot_cache(
             fontsize=7,
             inline=True,
         )
+    if show_vorticity:
+        assert vorticity is not None
+        scaled_vorticity = vorticity * VORTICITY_SCALE
+        negative_vorticity_contour = ax.contour(
+            distance_grid,
+            pressure_bar,
+            scaled_vorticity,
+            levels=NEGATIVE_VORTICITY_LEVELS,
+            colors="black",
+            linestyles="dashed",
+            linewidths=1.0,
+        )
+        positive_vorticity_contour = ax.contour(
+            distance_grid,
+            pressure_bar,
+            scaled_vorticity,
+            levels=POSITIVE_VORTICITY_LEVELS,
+            colors="black",
+            linestyles="solid",
+            linewidths=1.0,
+        )
+        ax.clabel(
+            negative_vorticity_contour,
+            levels=NEGATIVE_VORTICITY_LEVELS,
+            fmt="%.0f",
+            fontsize=7,
+            inline=True,
+        )
+        ax.clabel(
+            positive_vorticity_contour,
+            levels=POSITIVE_VORTICITY_LEVELS,
+            fmt="%.0f",
+            fontsize=7,
+            inline=True,
+        )
     if show_streamfunction:
         assert streamfunction is not None
         streamfunction_display_mean = np.nanmean(streamfunction[displayed])
@@ -477,6 +572,9 @@ def main() -> None:
     dynamics = args.dynamics_cache or dynamics_cache_path(
         args.output_dir, case_dir.name, args.last
     )
+    vorticity = args.vorticity_cache or horizontal_vorticity_cache_path(
+        args.output_dir, case_dir.name, args.last
+    )
     figure = output_path(args.output_dir, case_dir.name, args.last)
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -490,9 +588,11 @@ def main() -> None:
     plot_cache(
         cache,
         dynamics,
+        vorticity,
         figure,
         args.levels,
         args.show_perp_velocity,
+        args.show_vorticity,
         args.show_streamfunction,
     )
     print(f"Wrote {figure}")

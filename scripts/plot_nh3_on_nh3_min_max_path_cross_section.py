@@ -15,6 +15,7 @@ mpl.use("Agg")
 mpl.rc_file(Path(__file__).resolve().parents[1] / "matplotlibrc")
 
 from case_selection import resolve_case_dirs
+from cache_horizontal_vorticity import cache_path as horizontal_vorticity_cache_path
 from plot_h2o_on_h2o_min_max_path_cross_section import (
     DEFAULT_CASE_REGEX,
     DEFAULT_LAST,
@@ -38,10 +39,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--last", type=int, default=DEFAULT_LAST)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--dynamics-cache", type=Path, default=None)
+    parser.add_argument("--vorticity-cache", type=Path, default=None)
     parser.add_argument("--refresh-cache", action="store_true")
     parser.add_argument("--cache-only", action="store_true")
     parser.add_argument(
         "--show-perp-velocity",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
+    parser.add_argument(
+        "--show-vorticity",
         action=argparse.BooleanOptionalAction,
         default=True,
     )
@@ -52,7 +59,7 @@ def parse_args() -> argparse.Namespace:
 def output_path(output_dir: Path, case_name: str, last: int) -> Path:
     return (
         output_dir
-        / f"{case_name}_NH3_on_NH3_min_max_path_cross_section_last{last}.png"
+        / f"{case_name}_NH3_on_NH3_min_max_path_cross_section_wind_vorticity_last{last}.png"
     )
 
 
@@ -75,11 +82,14 @@ def main() -> None:
     dynamics = args.dynamics_cache or section_dynamics_cache_path(
         args.output_dir, case_dir.name, "NH3", args.last
     )
+    vorticity = args.vorticity_cache or horizontal_vorticity_cache_path(
+        args.output_dir, case_dir.name, args.last
+    )
     args.output_dir.mkdir(parents=True, exist_ok=True)
     figure = output_path(args.output_dir, case_dir.name, args.last)
     plot_cache(
-        section, dynamics, figure, "NH3", True,
-        args.show_perp_velocity, args.show_streamfunction,
+        section, dynamics, vorticity, figure, "NH3", True,
+        args.show_perp_velocity, args.show_vorticity, args.show_streamfunction,
     )
     print(f"Wrote {figure}")
 

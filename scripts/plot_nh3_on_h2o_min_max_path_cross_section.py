@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from cache_cross_section_dynamics import dynamics_cache_path
+from cache_horizontal_vorticity import cache_path as horizontal_vorticity_cache_path
 from case_selection import resolve_case_dirs
 from custom_colormaps import diverging_with_white_plateau
 from plot_h2o_on_h2o_min_max_path_cross_section import (
@@ -26,11 +27,15 @@ from plot_h2o_on_h2o_min_max_path_cross_section import (
     DEFAULT_ROOT,
     MAX_PRESSURE_BAR,
     NEGATIVE_PERP_VELOCITY_LEVELS,
+    NEGATIVE_VORTICITY_LEVELS,
     POSITIVE_PERP_VELOCITY_LEVELS,
+    POSITIVE_VORTICITY_LEVELS,
     VAPOR_FRACTIONAL_DEVIATION_LIMIT,
     VAPOR_FRACTIONAL_WHITE_HALF_WIDTH,
+    VORTICITY_SCALE,
     cache_path,
     read_dynamics_cache,
+    read_vorticity_cache,
     symmetric_robust_levels,
 )
 from plot_horizontal_mean_profiles import DEFAULT_OUTPUT_DIR
@@ -57,10 +62,22 @@ def parse_args() -> argparse.Namespace:
         help="Projected velocity and streamfunction cache. Default: inferred.",
     )
     parser.add_argument(
+        "--vorticity-cache",
+        type=Path,
+        default=None,
+        help="Horizontal vorticity cache. Default: inferred.",
+    )
+    parser.add_argument(
         "--show-perp-velocity",
         action=argparse.BooleanOptionalAction,
         default=True,
         help="Overlay perpendicular-velocity contours. Default: enabled.",
+    )
+    parser.add_argument(
+        "--show-vorticity",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Overlay horizontal vorticity contours scaled by 1e5. Default: enabled.",
     )
     parser.add_argument(
         "--show-streamfunction",
@@ -73,7 +90,7 @@ def parse_args() -> argparse.Namespace:
 def output_path(output_dir: Path, case_name: str, last: int) -> Path:
     return (
         output_dir
-        / f"{case_name}_NH3_on_H2O_min_max_path_cross_section_last{last}.png"
+        / f"{case_name}_NH3_on_H2O_min_max_path_cross_section_wind_vorticity_last{last}.png"
     )
 
 
@@ -90,8 +107,10 @@ def fractional_deviation(values: np.ndarray) -> np.ndarray:
 def plot_cache(
     section_path: Path,
     dynamics_path: Path,
+    vorticity_path: Path,
     figure_path: Path,
     show_perp_velocity: bool,
+    show_vorticity: bool,
     show_streamfunction: bool,
 ) -> None:
     with np.load(section_path, allow_pickle=False) as cache:
@@ -112,18 +131,30 @@ def plot_cache(
         case_name = str(cache["case_name"])
         snapshots = cache["snapshots"].astype(str)
         distance_km = cache["section_distance_km"]
+        section_x2_km = cache["section_x2_wrapped_km"]
+        section_x3_km = cache["section_x3_wrapped_km"]
         pressure_bar = cache["pressure_cross_section_bar"]
         nh3_vapor = fractional_deviation(cache["nh3_vapor_cross_section"])
         nh3_cloud = cache["nh3_cloud_cross_section"]
 
     perpendicular_velocity = None
     streamfunction = None
+    vorticity = None
     if show_perp_velocity or show_streamfunction:
         perpendicular_velocity, streamfunction = read_dynamics_cache(
             dynamics_path,
             case_name,
             snapshots,
             distance_km,
+            nh3_vapor.shape,
+        )
+    if show_vorticity:
+        vorticity = read_vorticity_cache(
+            vorticity_path,
+            case_name,
+            snapshots,
+            section_x2_km,
+            section_x3_km,
             nh3_vapor.shape,
         )
 
@@ -211,6 +242,41 @@ def plot_cache(
             fontsize=7,
             inline=True,
         )
+    if show_vorticity:
+        assert vorticity is not None
+        scaled_vorticity = vorticity * VORTICITY_SCALE
+        negative_contour = ax.contour(
+            distance_grid,
+            pressure_bar,
+            scaled_vorticity,
+            levels=NEGATIVE_VORTICITY_LEVELS,
+            colors="black",
+            linestyles="dashed",
+            linewidths=1.0,
+        )
+        positive_contour = ax.contour(
+            distance_grid,
+            pressure_bar,
+            scaled_vorticity,
+            levels=POSITIVE_VORTICITY_LEVELS,
+            colors="black",
+            linestyles="solid",
+            linewidths=1.0,
+        )
+        ax.clabel(
+            negative_contour,
+            levels=NEGATIVE_VORTICITY_LEVELS,
+            fmt="%.0f",
+            fontsize=7,
+            inline=True,
+        )
+        ax.clabel(
+            positive_contour,
+            levels=POSITIVE_VORTICITY_LEVELS,
+            fmt="%.0f",
+            fontsize=7,
+            inline=True,
+        )
     if show_streamfunction:
         assert streamfunction is not None
         streamfunction_anomaly = streamfunction - np.nanmean(streamfunction[displayed])
@@ -286,13 +352,18 @@ def main() -> None:
     dynamics = args.dynamics_cache or dynamics_cache_path(
         args.output_dir, case_dir.name, args.last
     )
+    vorticity = args.vorticity_cache or horizontal_vorticity_cache_path(
+        args.output_dir, case_dir.name, args.last
+    )
     figure = output_path(args.output_dir, case_dir.name, args.last)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     plot_cache(
         section,
         dynamics,
+        vorticity,
         figure,
         args.show_perp_velocity,
+        args.show_vorticity,
         args.show_streamfunction,
     )
     print(f"Wrote {figure}")
