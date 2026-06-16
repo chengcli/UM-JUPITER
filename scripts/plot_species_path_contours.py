@@ -17,9 +17,9 @@ mpl.rc_file(Path(__file__).resolve().parents[1] / "matplotlibrc")
 import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 from case_selection import resolve_case_dirs
+from custom_colormaps import diverging_with_white_plateau
 from plot_case_vapor_profiles import VAPOR_SPECS
 from plot_horizontal_mean_profiles import (
     DEFAULT_OUTPUT_DIR,
@@ -33,7 +33,9 @@ DEFAULT_ROOT = Path("/home/chengcli/data/2026.JupiterCRM")
 DEFAULT_CASE_REGEX = r"jup_crm3d_H2O-NH3-H2S_F10_nu(0\.01|0\.1|1\.0)"
 DEFAULT_LAST = 20
 DEFAULT_SPECIES = "H2O"
-DEFAULT_CMAP = "YlGnBu"
+DEFAULT_CMAP = "PiYG"
+DEFAULT_WHITE_PLATEAU_FRACTION = 0.08
+DEFAULT_FRACTIONAL_ANOMALY = True
 FIELD = "out2"
 PATH_KINDS = ("vapor", "cloud", "precipitation")
 
@@ -74,6 +76,16 @@ def parse_args() -> argparse.Namespace:
         help=f"Matplotlib colormap. Default: {DEFAULT_CMAP}",
     )
     parser.add_argument(
+        "--white-plateau-fraction",
+        type=float,
+        default=DEFAULT_WHITE_PLATEAU_FRACTION,
+        help=(
+            "Fraction of each panel data range mapped to white at the center. "
+            "Use with diverging colormaps such as PiYG. "
+            f"Default: {DEFAULT_WHITE_PLATEAU_FRACTION}"
+        ),
+    )
+    parser.add_argument(
         "--levels",
         type=int,
         default=16,
@@ -90,6 +102,14 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=None,
         help="Optional NPZ cache whose any_exceedance locations are marked with X symbols.",
+    )
+    parser.add_argument(
+        "--absolute-path",
+        action="store_true",
+        help=(
+            "Plot absolute path values instead of fractional anomaly from each "
+            "panel's spatial mean. Default: fractional anomaly."
+        ),
     )
     return parser.parse_args()
 
@@ -149,15 +169,49 @@ def read_time_mean_paths(
     return reference_x2, reference_x3, means, [item.snapshot for item in files]
 
 
-def contour_levels(values: np.ndarray, count: int) -> np.ndarray:
+def path_fractional_anomaly(values: np.ndarray) -> np.ndarray:
+    spatial_mean = float(np.nanmean(values))
+    if not np.isfinite(spatial_mean) or np.isclose(spatial_mean, 0.0):
+        raise ValueError("Cannot form fractional anomaly with zero/nonfinite spatial mean")
+    return values / spatial_mean - 1.0
+
+
+def contour_levels(values: np.ndarray, count: int, symmetric: bool = False) -> np.ndarray:
     finite = values[np.isfinite(values)]
     if finite.size == 0:
         raise ValueError("Path field contains no finite values")
     lower = float(np.min(finite))
     upper = float(np.max(finite))
+    if symmetric:
+        limit = max(abs(lower), abs(upper))
+        if np.isclose(limit, 0.0):
+            limit = 1.0e-12
+        lower = -limit
+        upper = limit
     if np.isclose(lower, upper):
         upper = lower + max(abs(lower) * 0.01, 1.0e-12)
     return np.linspace(lower, upper, count)
+
+
+def panel_colormap(
+    cmap: str,
+    levels: np.ndarray,
+    white_plateau_fraction: float,
+) -> str | mpl.colors.ListedColormap:
+    if white_plateau_fraction <= 0.0:
+        return cmap
+    lower = float(levels[0])
+    upper = float(levels[-1])
+    center = 0.5 * (lower + upper)
+    half_width = 0.5 * white_plateau_fraction * (upper - lower)
+    return diverging_with_white_plateau(
+        cmap,
+        lower,
+        upper,
+        half_width,
+        center=center,
+        name=f"{cmap}_white_mid_{white_plateau_fraction:g}",
+    )
 
 
 def plot_paths(
@@ -168,6 +222,8 @@ def plot_paths(
     x3_km: np.ndarray,
     means: dict[str, np.ndarray],
     cmap: str,
+    white_plateau_fraction: float,
+    fractional_anomaly: bool,
     level_count: int,
     last: int,
     marked_locations: tuple[np.ndarray, np.ndarray] | None,
@@ -176,44 +232,39 @@ def plot_paths(
     fig, axes = plt.subplots(
         1,
         3,
-        figsize=(12.5, 5.3),
+        figsize=(14.5, 4.8),
         sharex=True,
         sharey=True,
-        gridspec_kw={"wspace": 0.08},
     )
-    fig.subplots_adjust(left=0.04, right=0.995, bottom=0.29, top=0.86)
+    fig.subplots_adjust(wspace=0.16)
     display_species = {"H2O": "H$_2$O", "NH3": "NH$_3$", "H2S": "H$_2$S"}[species]
-
-    for ax, kind in zip(axes, PATH_KINDS):
-        levels = contour_levels(means[kind], level_count)
+    plot_means = (
+        {kind: path_fractional_anomaly(values) for kind, values in means.items()}
+        if fractional_anomaly
+        else means
+    )
+    for index, (ax, kind) in enumerate(zip(axes, PATH_KINDS)):
+        levels = contour_levels(plot_means[kind], level_count, symmetric=fractional_anomaly)
         contour = ax.contourf(
             x2_km,
             x3_km,
-            means[kind],
+            plot_means[kind],
             levels=levels,
-            cmap=cmap,
-        )
-        colorbar_ax = inset_axes(
-            ax,
-            width="50%",
-            height="3%",
-            loc="lower center",
-            bbox_to_anchor=(0.0, -0.30, 1.0, 1.0),
-            bbox_transform=ax.transAxes,
-            borderpad=0,
+            cmap=panel_colormap(cmap, levels, white_plateau_fraction),
         )
         colorbar = fig.colorbar(
             contour,
-            cax=colorbar_ax,
-            orientation="horizontal",
+            ax=ax,
+            location="right",
+            orientation="vertical",
+            fraction=0.046,
+            pad=0.018,
         )
-        colorbar.set_label("Path [kg m$^{-2}$]")
-        colorbar.set_ticks([levels[0], levels[-1]])
-        colorbar.ax.xaxis.set_major_formatter(mpl.ticker.FormatStrFormatter("%.3g"))
-        colorbar.ax.tick_params(labelsize=9, width=1.2, length=3)
-        colorbar.ax.xaxis.label.set_size(11)
+        colorbar.set_ticks(np.linspace(levels[0], levels[-1], 5))
+        colorbar.ax.yaxis.set_major_formatter(mpl.ticker.FormatStrFormatter("%.2g"))
+        colorbar.ax.tick_params(labelsize=8, width=1.2, length=3, pad=2)
         ax.set_title(f"{display_species} {kind}")
-        ax.set_xlabel("$x_2$ [km]")
+        ax.set_xlabel("X [km]")
         ax.set_aspect("equal")
         if marked_locations is not None:
             marked_x2, marked_x3 = marked_locations
@@ -227,13 +278,8 @@ def plot_paths(
                 zorder=5,
             )
 
-    axes[0].set_ylabel("$x_3$ [km]")
-    case_title = case_name.replace("_nu", ", $\\kappa=$")
-    title = f"{case_title}: mean of last {last} snapshots"
-    if marker_threshold is not None:
-        title += f"; X: column max vel1 > {marker_threshold:g} m s$^{{-1}}$"
-    fig.suptitle(title)
-    fig.savefig(output_path, dpi=220)
+    axes[0].set_ylabel("Y [km]")
+    fig.savefig(output_path, dpi=220, bbox_inches='tight')
     plt.close(fig)
 
 
@@ -266,6 +312,8 @@ def main() -> None:
         raise ValueError("--last must be positive")
     if args.levels < 2:
         raise ValueError("--levels must be at least 2")
+    if args.white_plateau_fraction < 0.0 or args.white_plateau_fraction > 1.0:
+        raise ValueError("--white-plateau-fraction must be between 0 and 1")
 
     root = args.root.expanduser()
     case_dirs = resolve_case_dirs(root, args.case_regex)
@@ -301,6 +349,8 @@ def main() -> None:
             x3_km,
             means,
             args.cmap,
+            args.white_plateau_fraction,
+            not args.absolute_path,
             args.levels,
             args.last,
             marked_locations,
