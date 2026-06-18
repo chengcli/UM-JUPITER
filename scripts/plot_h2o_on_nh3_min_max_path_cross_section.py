@@ -16,7 +16,12 @@ mpl.rc_file(Path(__file__).resolve().parents[1] / "matplotlibrc")
 
 from case_selection import resolve_case_dirs
 from cache_horizontal_vorticity import cache_path as horizontal_vorticity_cache_path
-from plot_h2o_on_h2o_min_max_path_cross_section import DEFAULT_CASE_REGEX, DEFAULT_LAST, DEFAULT_ROOT
+from plot_h2o_on_h2o_min_max_path_cross_section import (
+    DEFAULT_CASE_REGEX,
+    DEFAULT_LAST,
+    DEFAULT_ROOT,
+    overlay_name,
+)
 from plot_horizontal_mean_profiles import DEFAULT_OUTPUT_DIR
 from species_path_cross_section import (
     plot_cache,
@@ -38,7 +43,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--show-perp-velocity",
         action=argparse.BooleanOptionalAction,
-        default=True,
+        default=False,
     )
     parser.add_argument(
         "--show-vorticity",
@@ -50,9 +55,15 @@ def parse_args() -> argparse.Namespace:
 
 
 def output_path(output_dir: Path, case_name: str, last: int) -> Path:
+    return output_path_for_overlay(output_dir, case_name, last, "vorticity")
+
+
+def output_path_for_overlay(
+    output_dir: Path, case_name: str, last: int, overlay: str
+) -> Path:
     return (
         output_dir
-        / f"{case_name}_H2O_on_NH3_min_max_path_cross_section_wind_vorticity_last{last}.png"
+        / f"{case_name}_H2O_on_NH3_min_max_path_cross_section_{overlay}_last{last}.png"
     )
 
 
@@ -79,7 +90,8 @@ def main() -> None:
         args.output_dir, case_dir.name, args.last
     )
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    figure = output_path(args.output_dir, case_dir.name, args.last)
+    overlay = overlay_name(args.show_perp_velocity, args.show_vorticity)
+    figure = output_path_for_overlay(args.output_dir, case_dir.name, args.last, overlay)
     plot_cache(
         section, dynamics, vorticity, figure, "H2O", True,
         args.show_perp_velocity, args.show_vorticity, args.show_streamfunction,
