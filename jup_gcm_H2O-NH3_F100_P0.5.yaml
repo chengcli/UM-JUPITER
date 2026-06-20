@@ -151,7 +151,7 @@ reactions:
 
   - equation: H2O(l) => H2O(l,p)
     type: coagulation
-    rate-constant: {A: 1.e-5, b: 0, Ea_R: 0.}
+    rate-constant: {A: 1.e-4, b: 0, Ea_R: 0.}
 
   - equation: H2O(l,p) => H2O
     type: evaporation
@@ -163,7 +163,7 @@ reactions:
 
   - equation: NH3(s) => NH3(s,p)
     type: coagulation
-    rate-constant: {A: 1.e-5, b: 0, Ea_R: 0.}
+    rate-constant: {A: 1.e-4, b: 0, Ea_R: 0.}
 
   - equation: NH3(s,p) => NH3
     type: evaporation
