@@ -93,5 +93,5 @@ forcing:
 
 problem:
   Ps: 100.e5
-  Ts: 600.
+  Ts: 610.
   Tmin: 110.
