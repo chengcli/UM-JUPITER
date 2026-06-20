@@ -40,6 +40,7 @@ DEFAULT_CONFIG = Path("jup_crm3d_H2O-NH3-H2S_F10_nu0.01.yaml")
 DEFAULT_LAST = 20
 DEFAULT_MAX_PRESSURE_BAR = 50.0
 LOG_XMIN = 1.0e-8
+CACHE_VERSION = 2
 
 OUT1_FIELD = "out1"
 OUT2_FIELD = "out2"
@@ -245,7 +246,6 @@ def evaporation_options_by_reaction(
     evaporation = kinetics_options.evaporation()
     reactions = [reaction_name(item) for item in evaporation.reactions()]
     formulas = list(evaporation.logsvp())
-    runtime_formula = formulas[0]
     return {
         reaction: {
             "diff_c": evaporation.diff_c()[index],
@@ -256,10 +256,7 @@ def evaporation_options_by_reaction(
             "Tref": evaporation.Tref(),
             "Pref": evaporation.Pref(),
             "formula": formulas[index],
-            # Match Kintera's current non-temperature-evolving runtime path:
-            # temperature is passed with a singleton reaction dimension, so
-            # LogSVP broadcasts the first evaporation formula over all columns.
-            "runtime_formula": runtime_formula,
+            "runtime_formula": formulas[index],
         }
         for index, reaction in enumerate(reactions)
     }
@@ -425,6 +422,7 @@ def build_cache(case_dir: Path, config_path: Path, path: Path, last: int) -> Non
 
     pressure_bar = quiet_nanmean(np.stack(pressure_profiles, axis=0), axis=0) / PRESSURE_REFERENCE_PA
     output = {
+        "cache_version": np.array(CACHE_VERSION),
         "case_name": np.array(case_dir.name),
         "config": np.array(str(config_path)),
         "snapshots": np.asarray([item.snapshot for item in out1_files]),
@@ -562,6 +560,8 @@ def cache_has_python_verification(path: Path) -> bool:
     if not path.exists():
         return False
     with np.load(path, allow_pickle=False) as cache:
+        if "cache_version" not in cache or int(cache["cache_version"]) != CACHE_VERSION:
+            return False
         return all(
             f"{name}_python_mean" in cache
             and f"{name}_kintera_mean" in cache

@@ -131,6 +131,37 @@ For F10 experiments, initial profiles are extracted from the corresponding
 F100 case's snapshot `00000`. Compact pressure/profile arrays are saved under
 `diagnostics/initial_profile_cache/` and reused by later runs.
 
+### Idealized Precipitation Evaporation Timescales
+
+`scripts/plot_precipitation_evaporation_timescales.py` makes the manuscript
+comparison plot for fast-limit precipitation evaporation using the
+last-snapshot horizontal-mean simulation temperature profile. It reads
+vapor-diffusion parameters and condensed-phase molar volumes from the YAML
+file, assumes a maximally subsaturated environment `chi_v = 0`, and plots the
+e-folding timescale implied by `12 nu v_m chi_v^* / D_p^2` for H2O and NH3
+precipitation particles.
+
+```bash
+python scripts/plot_precipitation_evaporation_timescales.py
+```
+
+Defaults use the `jup_crm3d_H2O-NH3-H2S_F10_nu0.01` case, the latest 20
+snapshots, particle diameters of 1, 2, 5, and 10 mm, pressure from 0.1 to
+100 bar, and a 25 minute vertical reference line for sedimentation over one
+30 km Jovian scale height at `20 m s^-1`. The idealized fast-limit curves use
+dashed H2O and solid NH3 line styles. The realistic temperature profile is
+cached under `diagnostics/evaporation_timescale_temperature_cache/`; use
+`--refresh-temperature-cache` after simulation output changes. By default, the
+script also overlays full cellwise last-20-snapshot evaporation timescales from
+the corrected pure-Python per-reaction SVP calculation stored in
+`diagnostics/precipitation_evaporation_rate_coefficient_cache/`. The overlay is
+drawn in crimson. Generate that cache with
+`scripts/plot_precipitation_evaporation_rate_coefficients.py`, or disable the
+overlay with `--no-realistic-overlay`. The PNG and CSV are written to
+`diagnostics/`. Use `--diameters-mm`, `--pmin`, `--pmax`, `--case-regex`, or
+`--config` to adjust the calculation. Add `--use-adiabat` to restore the
+analytic dry Jovian adiabat.
+
 ### Species Path Contours
 
 `scripts/plot_species_path_contours.py` creates one three-panel horizontal map
