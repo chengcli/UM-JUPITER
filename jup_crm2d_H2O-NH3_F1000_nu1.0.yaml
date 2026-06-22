@@ -123,7 +123,7 @@ forcing:
 
   relax-bot-temp:
     tau: 1.e3
-    btemp: 597.545
+    btemp: 607.545
 
   relax-bot-comp:
     tau: 1.e3
