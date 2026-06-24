@@ -7,10 +7,16 @@ import argparse
 import csv
 import os
 import re
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib-um-jupiter-profile-grid")
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+SCRIPTS_DIR = REPO_ROOT / "scripts"
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
 
 import matplotlib as mpl
 
@@ -101,7 +107,7 @@ def case_label(case: Path) -> str:
 
 
 def csv_case_key(case: Path) -> str:
-    return f"-nu-{case_label(case)}"
+    return re.sub(r"[^A-Za-z0-9_.-]+", "-", rf"$\kappa=${case_label(case)}")
 
 
 def resolve_rows(root: Path, regexes: list[str]) -> list[RowSpec]:
