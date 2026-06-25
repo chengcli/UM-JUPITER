@@ -96,7 +96,7 @@ integration:
   cfl: 0.9
   implicit-scheme: 1
   nlim: -1
-  tlim: 500.e5
+  tlim: 1500.e5
   ncycle_out: 50
 
 outputs:
@@ -120,6 +120,10 @@ forcing:
   diffusion:
     nu_iso: 0.01
     kappa_iso: 0.01
+
+  coriolis:
+    type: xyz
+    omega1: 1.7585e-4
 
   relax-bot-temp:
     tau: 1.e3

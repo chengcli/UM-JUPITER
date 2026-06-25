@@ -8,7 +8,6 @@ NODE=dart5
 EXP_NAME=crm2d_H2O-NH3_F100_nu0.01
 EXP_INP=jup_${EXP_NAME}.yaml
 EXP_DIR=jup_${EXP_NAME}
-RESTAET=jup_${EXP_NAME}.final.restart \
 
 paddle submit ${NODE} \
   --log "${EXP_ROOT}/log.${EXP_DIR}" \
