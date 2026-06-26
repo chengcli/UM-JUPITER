@@ -121,6 +121,10 @@ forcing:
     nu_iso: 1.0
     kappa_iso: 1.0
 
+  coriolis:
+    type: xyz
+    omega1: 1.7585e-4
+
   relax-bot-temp:
     tau: 1.e3
     btemp: 607.545
