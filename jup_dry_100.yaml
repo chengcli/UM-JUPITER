@@ -16,7 +16,7 @@ geometry:
     nghost: 3
 
 distribute:
-  backend: nccl
+  backend: ucx
   layout: slab
   nb2: 1
   nb3: 1

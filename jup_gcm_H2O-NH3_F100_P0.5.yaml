@@ -55,7 +55,7 @@ geometry:
     nghost: 3
 
 distribute:
-  backend: nccl
+  backend: ucx
   layout: cubed-sphere
   blocks_per_process: 3
   nb2: 1
