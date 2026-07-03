@@ -86,10 +86,6 @@ dynamics:
     max-iter: 20
     ftol: 1.e-6
 
-  vertical-projection:
-    type: temperature
-    pressure-margin: 1.e-6
-
   reconstruct:
     vertical: {type: weno5, scale: true, shock: true}
     horizontal: {type: weno5, scale: true, shock: true}
