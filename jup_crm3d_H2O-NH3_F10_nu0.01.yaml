@@ -55,10 +55,9 @@ geometry:
     nghost: 3
 
 distribute:
-  backend: ucx
   layout: slab
-  nb2: 2
-  nb3: 1
+  nb2: 4
+  nb3: 4
   verbose: false
 
 dynamics:

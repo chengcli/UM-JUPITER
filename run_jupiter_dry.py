@@ -5,10 +5,6 @@ from dataclasses import dataclass
 
 import kintera
 from snapy import Mesh, MeshOptions, kIDN, kIPR, kIV1
-from paddle import (
-    start_dist,
-    close_dist,
-)
 
 
 @dataclass(frozen=True)
@@ -130,9 +126,8 @@ def run_with(args: argparse.Namespace) -> None:
     with open(args.config, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
-    device = start_dist(config["distribute"].get("backend", "gloo"))
-
     options = MeshOptions.from_yaml(args.config)
+    device = torch.device(options.device_str())
     options.block().output_dir(args.output_dir)
 
     mesh = Mesh(options)
@@ -184,7 +179,6 @@ def run_with(args: argparse.Namespace) -> None:
         mesh.make_outputs(block_vars, current_time)
 
     mesh.finalize(block_vars, current_time)
-    close_dist()
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run dry Jupiter hydrodynamics.")

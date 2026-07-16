@@ -1,5 +1,29 @@
 # UM-JUPITER Plotting Tools
 
+## Simulation Launch Environment
+
+Snapy uses its default communication backend and reads the device from the
+environment. Keep the `distribute` section of experiment YAML files limited to
+mesh topology and set `DEVICE`, and optionally `DEVICE_ID`, when launching a
+run.
+
+```bash
+# Single-process GPU run
+DEVICE=cuda DEVICE_ID=0 python -u run_jupiter_moist.py \
+  --config jup_crm2d_H2O-NH3_F100_nu0.01.yaml
+
+# Multi-process GPU run; LOCAL_RANK selects each process's GPU
+DEVICE=cuda torchrun --nproc-per-node=2 run_jupiter_moist.py \
+  --config jup_gcm_H2O-NH3_F100.yaml
+
+# CPU run
+DEVICE=cpu python -u run_jupiter_dry_minichem.py \
+  --config jup_dry_minichem.yaml
+```
+
+The `Mesh` object initializes and owns distributed communication; runners do
+not call Paddle or PyTorch distribution setup/teardown helpers.
+
 Plotting scripts for JUPITER CRM NetCDF output are under `scripts/`. Generated
 figures, CSV tables, and compact caches are written to `diagnostics/` by
 default.

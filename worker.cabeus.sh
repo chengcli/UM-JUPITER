@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+export DEVICE=cuda
+
 cd "${PBS_O_WORKDIR}"
 source "${HOME}/pyenv/bin/activate"
 

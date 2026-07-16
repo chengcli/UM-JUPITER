@@ -14,6 +14,8 @@
 
 set -euo pipefail
 
+export DEVICE=cuda
+
 # ---- User settings ----
 PORT=29500
 source ${HOME}/pyenv/bin/activate

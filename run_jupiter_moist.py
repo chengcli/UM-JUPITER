@@ -7,8 +7,6 @@ from snapy import Mesh, MeshOptions, kICY, kIV1
 from snapy import EquationOfState
 from kintera import ThermoX, ThermoY, KineticsOptions, Kinetics
 from paddle import (
-    start_dist,
-    close_dist,
     setup_profile,
     evolve_kinetics,
 )
@@ -42,9 +40,8 @@ def run_with(args: argparse.Namespace):
     with open(args.config, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
-    device = start_dist(config["distribute"].get("backend", "gloo"))
-
     options = MeshOptions.from_yaml(args.config)
+    device = torch.device(options.device_str())
     options.block().output_dir(args.output_dir)
 
     mesh = Mesh(options)
@@ -119,7 +116,6 @@ def run_with(args: argparse.Namespace):
         mesh.make_outputs(block_vars, current_time)
 
     mesh.finalize(block_vars, current_time)
-    close_dist()
 
 def main():
     # parse arguments

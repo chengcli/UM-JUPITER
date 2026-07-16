@@ -14,6 +14,7 @@ paddle submit ${NODE} \
   --file run_jupiter_moist.py \
   --file ${EXP_INP} \
   -- \
+  DEVICE=cuda \
   MASTER_PORT=29500 \
   DEVICE_ID=0 \
   HDF5_USE_FILE_LOCKING=FALSE \
@@ -34,6 +35,7 @@ paddle submit ${NODE} \
   --file run_jupiter_moist.py \
   --file ${EXP_INP} \
   -- \
+  DEVICE=cuda \
   MASTER_PORT=29500 \
   DEVICE_ID=0 \
   HDF5_USE_FILE_LOCKING=FALSE \
@@ -54,6 +56,7 @@ paddle submit ${NODE} \
   --file run_jupiter_moist.py \
   --file ${EXP_INP} \
   -- \
+  DEVICE=cuda \
   MASTER_PORT=29500 \
   DEVICE_ID=0 \
   HDF5_USE_FILE_LOCKING=FALSE \

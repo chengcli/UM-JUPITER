@@ -14,6 +14,7 @@ paddle submit ${NODE} \
   --file run_jupiter_moist.py \
   --file ${EXP_INP} \
   -- \
+  DEVICE=cuda \
   torchrun \
     --nproc_per_node 2 \
     run_jupiter_moist.py \
@@ -37,6 +38,7 @@ paddle submit ${NODE} \
   --file run_jupiter_moist.py \
   --file ${EXP_INP} \
   -- \
+  DEVICE=cuda \
   torchrun \
     --nproc_per_node 2 \
     run_jupiter_moist.py \
@@ -60,6 +62,7 @@ paddle submit ${NODE} \
   --file run_jupiter_moist.py \
   --file ${EXP_INP} \
   -- \
+  DEVICE=cuda \
   torchrun \
     --nproc_per_node 2 \
     run_jupiter_moist.py \

@@ -44,13 +44,7 @@ def run_with(args: argparse.Namespace):
     options.block().output_dir(args.output_dir)
 
     mesh = Mesh(options)
-
-    # use cuda if available
-    if torch.cuda.is_available() and options.block().layout().backend() == "nccl":
-        device = torch.device(options.device_str())
-    else:
-        device = torch.device("cpu")
-
+    device = torch.device(options.device_str())
     mesh.to(device)
 
     thermo_configs: list[ThermoConfigs] = []
