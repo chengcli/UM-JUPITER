@@ -41,8 +41,10 @@ geometry:
   type: gnomonic-equiangle
 
   bounds:
-    x1min: 69886.E3
-    x1max: 70186.E3
+    #x1min: 69886.E3
+    #x1max: 70186.E3
+    x1min: 39886.E3
+    x1max: 40186.E3
     x2min_pi: -0.25
     x2max_pi: 0.25
     x3min_pi: -0.25
@@ -50,13 +52,13 @@ geometry:
 
   cells:
     nx1: 100
-    nx2: 144
-    nx3: 144
+    nx2: 72
+    nx3: 72
     nghost: 3
 
 distribute:
   layout: cubed-sphere
-  blocks_per_process: 3
+  blocks_per_process: 6
   nb2: 1
   nb3: 1
   verbose: false

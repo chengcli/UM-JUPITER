@@ -11,6 +11,9 @@ from paddle import (
     evolve_kinetics,
 )
 
+PERTURBATION_SEED = 0
+VERTICAL_VELOCITY_PERTURBATION = 1.0e-2
+
 @dataclass(frozen=True)
 class ThermoConfigs:
     eos: EquationOfState
@@ -68,7 +71,16 @@ def run_with(args: argparse.Namespace):
         block_vars = []
         for block in mesh.blocks:
             hydro_w = setup_profile(block, param, method="pseudo-adiabat")
-            hydro_w[kIV1] += 0.1 * torch.rand_like(hydro_w[kIV1])
+            layout = block.get_layout()
+            _, _, face_id = layout.loc_of(layout.options.rank())
+            generator = torch.Generator(device=hydro_w.device).manual_seed(
+                PERTURBATION_SEED + face_id
+            )
+            hydro_w[kIV1].uniform_(
+                -VERTICAL_VELOCITY_PERTURBATION,
+                VERTICAL_VELOCITY_PERTURBATION,
+                generator=generator,
+            )
             block_vars.append({"hydro_w": hydro_w})
         block_vars, current_time = mesh.initialize(block_vars)
 
@@ -94,6 +106,9 @@ def run_with(args: argparse.Namespace):
 
         for stage in range(len(intg.stages)):
             mesh.forward(block_vars, dt, stage)
+
+        # convert to consistent hydro_w
+        bvars["hydro_w"] = thermo.eos.compute("U->W", (bvars["hydro_u"],))
 
         for bvars, thermo in zip(block_vars, thermo_configs):
             del_rho = evolve_kinetics(
