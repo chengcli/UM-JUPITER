@@ -107,10 +107,10 @@ def run_with(args: argparse.Namespace):
         for stage in range(len(intg.stages)):
             mesh.forward(block_vars, dt, stage)
 
-        # convert to consistent hydro_w
-        bvars["hydro_w"] = thermo.eos.compute("U->W", (bvars["hydro_u"],))
-
         for bvars, thermo in zip(block_vars, thermo_configs):
+            # convert to consistent hydro_w
+            bvars["hydro_w"] = thermo.eos.compute("U->W", (bvars["hydro_u"],))
+
             del_rho = evolve_kinetics(
                 bvars["hydro_w"],
                 thermo.eos,
