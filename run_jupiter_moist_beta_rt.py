@@ -1,6 +1,5 @@
-"""Moist equatorial Jupiter beta plane with solar radiation and internal heat."""
+"""Moist Jupiter beta plane with solar radiation and internal heat."""
 import argparse
-import math
 import os
 from pathlib import Path
 
@@ -13,7 +12,11 @@ from paddle.orbital import Jupiter
 from paddle.rt.opacity import GasOpacity, CloudOpacity
 from paddle.rt.rt_state import RT_HEATING_KEY
 from paddle.rt.rt_state_cartesian import RTStateCartesian
-from paddle.forcing import BetaPlaneCoriolis
+from paddle.forcings import BetaPlaneCoriolis
+
+
+PERTURBATION_SEED = 0
+VERTICAL_VELOCITY_PERTURBATION = 1.0e-2
 
 
 def prepare_config(infile: Path, output_dir: Path, device: torch.device) -> Path:
@@ -54,7 +57,6 @@ def make_user_output(state: RTStateCartesian):
         net_flux[..., il:iu+2] = state.net_flux.reshape(shape)
         return {
             "qtol": hydro_w[kICY:].sum(dim=0),
-            "temp": state.eos.compute("W->T", (hydro_w,)),
             "rt_heating": bvars[RT_HEATING_KEY],
             "net_flux": net_flux,
         }
@@ -63,29 +65,33 @@ def make_user_output(state: RTStateCartesian):
 
 @torch.no_grad()
 def run_with(args):
+    # load yaml configure
     infile = Path(args.config).resolve()
     output_dir = Path(args.output_dir).resolve()
     with infile.open(encoding="utf-8") as stream:
         config = yaml.safe_load(stream)
 
+    # create output directory and opacity artifacts
     options = MeshOptions.from_yaml(str(infile))
     device = torch.device(options.device_str())
-    if device.type == "cuda":
-        torch.cuda.set_device(device)
     config_path = prepare_config(infile, output_dir, device)
     options.block().output_dir(str(output_dir))
+    # construct mesh
     mesh = Mesh(options)
     mesh.to(device=device, dtype=torch.float64)
     blocks = list(mesh.blocks)
 
+    # register radiative heating and beta-plane forcing at each rk stage
     orbit = Jupiter(rt_heating_key=RT_HEATING_KEY)
     forcing_path = config_path.parent / "jupiter_beta_forcing.pt"
     torch.jit.script(orbit).save(str(forcing_path))
-    planet = config["planet"]
-    beta = 2.0 * float(planet["rotation_rate"]) / float(planet["radius"])
+    problem = config["problem"]
+    beta = 2.0 * float(problem["rotation_rate"]) / float(problem["radius"])
     coriolis_path = config_path.parent / "beta_plane.pt"
     torch.jit.script(BetaPlaneCoriolis(f0=0.0, beta=beta)).save(str(coriolis_path))
     mesh.set_user_stage_forcings([str(forcing_path), str(coriolis_path)])
+
+    # create radiation and thermodynamics modules for each block
     rt_config = config["radiative-transfer"]
     states = [RTStateCartesian([orbit], block, config_path,
                               lon=float(rt_config["longitude"]),
@@ -101,61 +107,69 @@ def run_with(args):
                  "grav": -float(config["forcing"]["const-gravity"]["grav1"])}
         for name in species:
             param[f"x{name}"] = float(problem.get(f"x{name}", 0.0))
+        # set initial profile with perturbation
         block_vars = []
         for block in blocks:
             hydro_w = setup_profile(block, param, method="pseudo-adiabat")
-            rank = block.get_layout().options.rank()
-            generator = torch.Generator(device=device).manual_seed(rank)
-            hydro_w[kIV1].uniform_(-1.e-2, 1.e-2, generator=generator)
+            layout = block.get_layout()
+            rank = layout.options.rank()
+            _, _, face_id = layout.loc_of(rank)
+            generator = torch.Generator(device=hydro_w.device).manual_seed(
+                PERTURBATION_SEED + face_id + rank * 6
+            )
+            hydro_w[kIV1].uniform_(
+                -VERTICAL_VELOCITY_PERTURBATION,
+                VERTICAL_VELOCITY_PERTURBATION,
+                generator=generator,
+            )
             block_vars.append({"hydro_w": hydro_w})
         block_vars, current_time = mesh.initialize(block_vars)
 
+    # initialize radiative heating and user output
     for block, state, bvars in zip(blocks, states, block_vars):
         state.update_heating(bvars, current_time)
         block.set_user_output_func(make_user_output(state))
 
+    # create kinetics modules
     kinet = Kinetics(KineticsOptions.from_yaml(str(config_path)))
     kinet.to(device=device, dtype=torch.float64)
+
+    # initialize cycle counts
     intg = mesh.module("block0.intg")
     cycle = blocks[0].cycle()
-    initial_cycle = cycle
     end_time = float(config["integration"]["tlim"])
-    output_dt = min(float(out["dt"]) for out in config["outputs"] if float(out["dt"]) > 0.)
     if not args.restart:
         mesh.make_outputs(block_vars, current_time)
 
+    mesh.set_cycle(cycle)
+
     while not intg.stop(cycle, current_time):
-        if args.max_cycles >= 0 and cycle - initial_cycle >= args.max_cycles:
-            break
-        dt = min(float(mesh.max_time_step(block_vars)), end_time - current_time)
-        next_output = (math.floor(current_time / output_dt) + 1) * output_dt
-        dt = min(dt, next_output - current_time)
-        for state in states:
-            if state.update_dt > 0.:
-                dt = min(dt, state.next_update - current_time)
-        mesh.set_cycle(cycle + 1)
+        dt = mesh.max_time_step(block_vars)
         mesh.print_cycle_info(block_vars, current_time, dt)
+
+        # run rk-stages
         for stage in range(len(intg.stages)):
             mesh.forward(block_vars, dt, stage)
 
-        # Recover post-hydro primitives before applying moist chemistry.
+        # compute post-hydro primitives before applying moist chemistry.
         for bvars, state in zip(block_vars, states):
             bvars["hydro_w"] = state.eos.compute("U->W", (bvars["hydro_u"],))
             del_rho = evolve_kinetics(bvars["hydro_w"], state.eos,
                                      state.thermo_x, state.thermo_y, kinet, dt)
             bvars["hydro_u"][kICY:] += del_rho
 
+        # check_redo will do a final hydro_u -> hydro_w
         err = mesh.check_redo(block_vars)
-        if err > 0:
-            mesh.set_cycle(cycle)
+        if err > 0: # redo current step without advancing cycle
             continue
-        if err < 0:
-            mesh.set_cycle(cycle)
+        if err < 0: # terminate
             break
+
+        # all pass, advance a cycle
         cycle += 1
+        mesh.set_cycle(cycle)
         current_time += dt
         for bvars, state in zip(block_vars, states):
-            bvars["hydro_w"] = state.eos.compute("U->W", (bvars["hydro_u"],))
             state.update_heating(bvars, current_time)
         mesh.make_outputs(block_vars, current_time)
 
@@ -166,15 +180,13 @@ def run_with(args):
     status = mesh.finalize(block_vars, current_time)
     if int(os.environ.get("RANK", "0")) == 0:
         print(f"Jupiter finished at t={current_time:.9g} s, cycle={cycle}, target={end_time:.9g} s", flush=True)
-    stopped_for_test = args.max_cycles >= 0 and cycle - initial_cycle >= args.max_cycles
-    if status and not stopped_for_test:
+    if status:
         raise RuntimeError(f"Jupiter integration stopped before its target: status={status}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("-c", "--config", default=str(Path(__file__).with_name("jupiter_beta.yaml")))
+    parser.add_argument("-c", "--config", default=str(Path(__file__).with_name("jup_crm3d_H2O-NH3_beta_rt.yaml")))
     parser.add_argument("--output-dir", default="output")
     parser.add_argument("-r", "--restart", default="")
-    parser.add_argument("--max-cycles", type=int, default=-1, help="Stop after this many accepted steps for validation")
     run_with(parser.parse_args())
