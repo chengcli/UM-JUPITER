@@ -1,0 +1,323 @@
+# Equatorial beta plane: x1 vertical, x2 east, x3 north; all lengths in meters.
+# Global grid: nx1=100, nx2=400, nx3=200; dx2=dx3=187.166 km, dx1=3 km.
+# Half-radius Jupiter; x3/R spans -30 to +30 degrees, Lx2=2*Lx3.
+# Eight million cells. Use jupiter_beta_smoke.yaml for local validation.
+# H2O/NH3 moist parameters retained from jup_gcm_H2O-NH3_F100.yaml.
+# The 100 W/m^2 internal flux follows that experiment's heating scale.
+# Grey opacity coefficients are illustrative, inherited from the Uranus example;
+# they are not calibrated Jupiter opacities.
+reference-state:
+  Tref: 0.0
+  Pref: 1.e5
+species:
+- name: dry
+  composition:
+    H: 1.5
+    He: 0.15
+  cv_R: 2.5
+- name: H2O
+  composition:
+    H: 2
+    O: 1
+  cv_R: 2.5
+  u0_R: 0.0
+- name: NH3
+  composition:
+    N: 1
+    H: 3
+  cv_R: 2.5
+  u0_R: 0.0
+- name: H2O(l)
+  composition:
+    H: 2
+    O: 1
+  cv_R: 9.0
+  u0_R: -3430.0
+- name: H2O(l,p)
+  composition:
+    H: 2
+    O: 1
+  cv_R: 9.0
+  u0_R: -3430.0
+- name: NH3(s)
+  composition:
+    N: 1
+    H: 3
+  cv_R: 9.0
+  u0_R: -5520.0
+- name: NH3(s,p)
+  composition:
+    N: 1
+    H: 3
+  cv_R: 9.0
+  u0_R: -5520.0
+geometry:
+  type: cartesian
+  bounds:
+    x1min: 0.0
+    x1max: 300000.0
+    x2min: 0.0
+    x2max: 74866247.33014716
+    x3min: -18716561.83253679
+    x3max: 18716561.83253679
+  cells:
+    nx1: 100
+    nx2: 400
+    nx3: 200
+    nghost: 3
+distribute:
+  layout: slab
+  nb2: 2
+  nb3: 1
+  blocks_per_process: 1
+  verbose: false
+dynamics:
+  equation-of-state:
+    type: ideal-moist
+    density-floor: 1.0e-10
+    pressure-floor: 1.0e-10
+    limiter: true
+    max-iter: 100
+    ftol: 1.0e-06
+  reconstruct:
+    vertical:
+      type: weno5
+      scale: true
+      shock: true
+    horizontal:
+      type: weno5
+      scale: true
+      shock: true
+  riemann-solver:
+    type: hllc
+boundary-condition:
+  external:
+    x1-inner: reflecting
+    x1-outer: reflecting
+    x2-inner: periodic
+    x2-outer: periodic
+    x3-inner: reflecting
+    x3-outer: reflecting
+integration:
+  type: rk3
+  cfl: 0.9
+  implicit-scheme: 1
+  nlim: -1
+  tlim: 31557600.0
+  ncycle_out: 10
+outputs:
+- type: restart
+  dt: 864000.0
+- type: netcdf
+  variables:
+  - prim
+  x1_slice: 75000.0
+  dt: 86400.0
+- type: netcdf
+  variables:
+  - uov
+  - path
+  dt: 86400.0
+- type: netcdf
+  variables:
+  - prim
+  x1_slice: 150000.0
+  dt: 86400.0
+- type: netcdf
+  variables:
+  - prim
+  x1_slice: 225000.0
+  dt: 86400.0
+forcing:
+  const-gravity:
+    grav1: -22.0
+  relax-bot-comp:
+    tau: 1.e3
+    species:
+    - H2O
+    - NH3
+    xfrac:
+    - 0.003
+    - 0.00032
+  bot-heat:
+    flux: 100.0
+    depth: 2
+sedimentation:
+  radius:
+    H2O(l,p): 1.0e-10
+    NH3(s,p): 1.0e-10
+  density:
+    H2O(l,p): 1000.0
+    NH3(s,p): 800.0
+  const-vsed:
+    H2O(l,p): -20.0
+    NH3(s,p): -20.0
+reactions:
+- equation: H2O => H2O(l)
+  type: nucleation
+  rate-constant:
+    formula: h2o_ideal
+- equation: H2O(l) => H2O(l,p)
+  type: coagulation
+  rate-constant:
+    A: 0.0001
+    b: 0
+    Ea_R: 0.0
+- equation: H2O(l,p) => H2O
+  type: evaporation
+  rate-constant:
+    formula: h2o_ideal
+    diff_c: 2.0e-05
+    diff_T: 0.0
+    diff_P: 0.0
+    vm: 1.8e-05
+    diameter: 0.001
+- equation: NH3 => NH3(s)
+  type: nucleation
+  rate-constant:
+    formula: nh3_ideal
+- equation: NH3(s) => NH3(s,p)
+  type: coagulation
+  rate-constant:
+    A: 0.0001
+    b: 0
+    Ea_R: 0.0
+- equation: NH3(s,p) => NH3
+  type: evaporation
+  rate-constant:
+    formula: nh3_ideal
+    diff_c: 2.0e-05
+    diff_T: 0.0
+    diff_P: 0.0
+    vm: 2.5e-05
+    diameter: 0.001
+problem:
+  Ps: 100.e5
+  Ts: 610.0
+  Tmin: 110.0
+  xH2O: 0.003
+  xNH3: 0.00032
+planet:
+  radius: 35746000.0
+  rotation_rate: 0.00017585
+radiative-transfer:
+  update_dt: 600.0
+  sw_albedo: 0.0
+  lw_albedo: 0.0
+  longitude: 0.0
+  latitude: 0.0
+opacities:
+  gas-sw:
+    type: jit
+    data:
+    - gas_sw.pt
+    species:
+    - dry
+    - H2O
+    - NH3
+    jit_kwargs:
+    - pres
+    - temp
+    nmom: 1
+    parameters:
+      kind: gas
+      kappa_ref:
+      - 0.001
+      - 0.001
+      - 0.001
+      p_ref: 100000.0
+      exponent:
+      - 0.5
+      - 0.5
+      - 0.5
+  gas-lw:
+    type: jit
+    data:
+    - gas_lw.pt
+    species:
+    - dry
+    - H2O
+    - NH3
+    jit_kwargs:
+    - pres
+    - temp
+    nmom: 1
+    parameters:
+      kind: gas
+      kappa_ref:
+      - 0.005
+      - 0.005
+      - 0.005
+      p_ref: 100000.0
+      exponent:
+      - 0.7
+      - 0.7
+      - 0.7
+  cloud-sw:
+    type: jit
+    data:
+    - cloud_sw.pt
+    species:
+    - H2O(l)
+    - NH3(s)
+    jit_kwargs:
+    - pres
+    - temp
+    nmom: 1
+    parameters:
+      kind: cloud
+      mass_extinction:
+      - 100.0
+      - 80.0
+      single_scattering_albedo:
+      - 0.99
+      - 0.98
+      asymmetry:
+      - 0.75
+      - 0.7
+  cloud-lw:
+    type: jit
+    data:
+    - cloud_lw.pt
+    species:
+    - H2O(l)
+    - NH3(s)
+    jit_kwargs:
+    - pres
+    - temp
+    nmom: 1
+    parameters:
+      kind: cloud
+      mass_extinction:
+      - 20.0
+      - 15.0
+      single_scattering_albedo:
+      - 0.25
+      - 0.2
+      asymmetry:
+      - 0.55
+      - 0.5
+bands:
+- name: sw
+  range:
+  - 10000.0
+  - 50000.0
+  opacities:
+  - gas-sw
+  - cloud-sw
+  solver: toon
+  nwave: 1
+  weights:
+  - 1.0
+- name: lw
+  range:
+  - 10.0
+  - 10000.0
+  opacities:
+  - gas-lw
+  - cloud-lw
+  solver: toon
+  flags: planck
+  nwave: 1
+  weights:
+  - 1.0
